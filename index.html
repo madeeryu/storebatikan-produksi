@@ -198,7 +198,7 @@
       <a class="nav-item" data-page="batch" onclick="navigateTo('batch')">🧵 Batch & WIP</a>
       <div class="nav-section">Monitoring</div>
       <a class="nav-item" data-page="pekerja-rekap" onclick="navigateTo('pekerja-rekap')">👷 Hasil Pekerja</a>
-      <a class="nav-item" data-page="bahan" onclick="navigateTo('bahan')">🧪 Stok Bahan <span class="badge badge-red hidden" id="bahan-badge" style="margin-left:auto;">0</span></a>
+      <a class="nav-item" data-page="bahan" onclick="navigateTo('bahan')">🧪 Stok Obat <span class="badge badge-red hidden" id="bahan-badge" style="margin-left:auto;">0</span></a>
       <a class="nav-item" data-page="hpp" onclick="navigateTo('hpp')">💰 HPP</a>
       <div class="nav-section">Pengaturan</div>
       <a class="nav-item" data-page="master" onclick="navigateTo('master')">⚙️ Master Data</a>
@@ -285,10 +285,10 @@
 
     <!-- BAHAN -->
     <div class="page" id="page-bahan">
-      <div class="page-header"><div class="page-title">🧪 Stok Bahan</div><div class="page-subtitle">Pemakaian otomatis dari log pengobatan</div></div>
+      <div class="page-header"><div class="page-title">🧪 Stok Obat</div><div class="page-subtitle">Pengambilan obat — stok lama & baru, sisa dihitung otomatis</div></div>
       <div style="margin-bottom:14px;" class="row-flex">
-        <button class="btn btn-primary" onclick="openBahanModal()">+ Bahan</button>
-        <button class="btn btn-outline" onclick="openBeliModal()">+ Pembelian / Stok</button>
+        <button class="btn btn-primary" onclick="openAmbilModal()">− Ambil Obat</button>
+        <button class="btn btn-outline" onclick="openBahanModal()">+ Obat</button>
       </div>
       <div class="card"><div class="table-wrap"><div id="bahan-list"><div class="empty">Memuat…</div></div></div></div>
     </div>
@@ -360,7 +360,7 @@ const db = getFirestore(app);
 
 // ===== STATE =====
 let currentUser = null, currentUserData = null;
-const M = { golongan:[], tipe:[], warna:[], alur:[], pekerja:[], bahan:[], racikan:[], config:null };
+const M = { golongan:[], tipe:[], warna:[], alur:[], pekerja:[], bahan:[], racikan:[], pengambilan:[], config:null };
 let batchTab = 'berjalan', masterTab = 'golongan';
 
 // ===== HELPERS =====
@@ -429,8 +429,8 @@ window.closeHostModal = () => $('modal-host').classList.remove('open');
 
 // ===== LOAD MASTER =====
 async function loadAllMaster(){
-  const cols=['golongan','tipe_produk','warna','alur','pekerja','bahan_baku','racikan_obat'];
-  const [gol,tipe,warna,alur,pekerja,bahan,racikan] = await Promise.all(cols.map(c=>getDocs(collection(db,c))));
+  const cols=['golongan','tipe_produk','warna','alur','pekerja','bahan_baku','racikan_obat','pengambilan_obat'];
+  const [gol,tipe,warna,alur,pekerja,bahan,racikan,ambil] = await Promise.all(cols.map(c=>getDocs(collection(db,c))));
   M.golongan = gol.docs.map(d=>({id:d.id,...d.data()}));
   M.tipe     = tipe.docs.map(d=>({id:d.id,...d.data()}));
   M.warna    = warna.docs.map(d=>({id:d.id,...d.data()}));
@@ -438,11 +438,12 @@ async function loadAllMaster(){
   M.pekerja  = pekerja.docs.map(d=>({id:d.id,...d.data()}));
   M.bahan    = bahan.docs.map(d=>({id:d.id,...d.data()}));
   M.racikan  = racikan.docs.map(d=>({id:d.id,...d.data()}));
+  M.pengambilan = ambil.docs.map(d=>({id:d.id,...d.data()}));
   try { const c=await getDoc(doc(db,'config_produksi','hpp')); M.config = c.exists()? c.data() : null; } catch(e){ M.config=null; }
   updateBahanBadge();
 }
 function updateBahanBadge(){
-  const low = M.bahan.filter(b=>(b.stok||0) <= (b.stok_minimum||0) && (b.stok_minimum||0)>0).length;
+  const low = M.bahan.filter(b=>{ const s=obatStats(b); return s.stok_akhir <= (b.stok_minimum||0) && (b.stok_minimum||0)>0; }).length;
   const badge=$('bahan-badge'); if(!badge) return;
   if(low>0){ badge.textContent=low; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
 }
@@ -663,27 +664,12 @@ window.saveLog = async () => {
     // 3) log
     wb.set(doc(collection(db,'log_kerja')), { tanggal:tgl, bulan:tgl.slice(0,7), pekerja_id:pekId, pekerja_nama:pek?.nama||'', batch_id:w.batch_id, batch_kode:w.batch_kode, golongan:w.golongan, alur_urutan:w.urutan, nama_tahap:w.nama_tahap, jenis_pekerjaan:peran, warna_id:warnaId, warna_nama:warnaNama, jumlah_kodi:kodi, created_by:currentUser.uid, created_at:serverTimestamp() });
     await wb.commit();
-    // 4) deduct bahan if obat
-    if(w.jenis_pekerjaan==='obat') await deductBahan(w.golongan, warnaId, w.nama_tahap, kodi);
     toast('Tercatat: '+kodi+' kodi '+w.nama_tahap+' ✅','success');
     closeHostModal();
     if($('page-papan').classList.contains('active')) loadPapan();
     if($('page-batch').classList.contains('active')) loadBatchList();
   } catch(e){ toast('Gagal: '+e.message,'error'); $('lg-save').disabled=false; }
 };
-
-async function deductBahan(golId, warnaId, namaTahap, kodi){
-  const rcp = M.racikan.find(r=>r.golongan===golId && r.warna_id===warnaId && (r.komponen||[]).length);
-  if(!rcp) return;
-  try {
-    const wb=writeBatch(db); let any=false;
-    for(const k of rcp.komponen){
-      if(!k.bahan_id||!k.jumlah_gram) continue;
-      wb.update(doc(db,'bahan_baku',k.bahan_id), { stok: increment(-(k.jumlah_gram*kodi)) }); any=true;
-    }
-    if(any){ await wb.commit(); await loadAllMaster(); }
-  } catch(e){ /* bahan optional */ }
-}
 
 async function loadPapan(){
   const tgl=$('papan-date').value||todayStr();
@@ -728,49 +714,125 @@ async function loadPekerjaRekap(){
   }</tbody></table></div>`;
 }
 
-// ===== BAHAN =====
+// ===== STOK OBAT (pengambilan: stok lama/baru, sisa otomatis) =====
+function obatStats(b){
+  const total_ambil = M.pengambilan.filter(p=>p.bahan_id===b.id).reduce((s,p)=>s+(p.jumlah||0),0);
+  const lama=b.stok_lama||0, baru=b.stok_baru||0;
+  const sisa_lama=Math.max(0, lama-total_ambil);
+  const sisa_baru=Math.max(0, baru-Math.max(0, total_ambil-lama));
+  return { total_awal:lama+baru, total_ambil, sisa_lama, sisa_baru, stok_akhir:sisa_lama+sisa_baru };
+}
 async function loadBahan(){
   await loadAllMaster();
   const el=$('bahan-list');
-  if(!M.bahan.length){ el.innerHTML='<div class="empty"><div class="ico">🧪</div>Belum ada bahan</div>'; return; }
+  if(!M.bahan.length){ el.innerHTML='<div class="empty"><div class="ico">🧪</div>Belum ada obat. Klik "+ Obat" atau isi data awal di Master Data.</div>'; return; }
   const bahan=[...M.bahan].sort((a,b)=>a.nama.localeCompare(b.nama));
-  el.innerHTML = `<table><thead><tr><th>Bahan</th><th>Stok</th><th>Min</th><th>Status</th><th></th></tr></thead><tbody>${
+  el.innerHTML = `<table><thead><tr><th>Obat</th><th>Stok Awal</th><th>Total</th><th>Diambil</th><th>Sisa (Lama / Baru)</th><th>Stok Akhir</th><th></th></tr></thead><tbody>${
     bahan.map(b=>{
-      const low=(b.stok||0)<=(b.stok_minimum||0)&&(b.stok_minimum||0)>0;
-      return `<tr><td><b>${esc(b.nama)}</b></td><td>${(b.stok||0).toLocaleString('id-ID')} ${esc(b.satuan||'')}</td><td>${(b.stok_minimum||0).toLocaleString('id-ID')}</td><td>${low?'<span class="badge badge-red">Menipis</span>':'<span class="badge badge-green">Aman</span>'}</td><td><button class="btn btn-outline btn-sm" onclick="openBeliModal('${b.id}')">+ Stok</button></td></tr>`;
+      const s=obatStats(b); const sat=b.satuan?(' '+esc(b.satuan)):'';
+      const low=s.stok_akhir<=(b.stok_minimum||0)&&(b.stok_minimum||0)>0;
+      return `<tr>
+        <td><b>${esc(b.nama)}</b>${b.stok_minimum?`<div class="muted" style="font-size:11px;">min ${b.stok_minimum}</div>`:''}</td>
+        <td><span class="badge badge-gray">Lama ${b.stok_lama||0}</span> <span class="badge badge-blue">Baru ${b.stok_baru||0}</span></td>
+        <td>${s.total_awal}${sat}</td>
+        <td>${s.total_ambil?('<b>'+s.total_ambil+'</b>'+sat):'<span class="muted">-</span>'}</td>
+        <td><span class="badge ${s.sisa_lama?'badge-amber':'badge-gray'}">Lama ${s.sisa_lama}</span> <span class="badge badge-blue">Baru ${s.sisa_baru}</span></td>
+        <td><b style="${low?'color:var(--red-text)':''}">${s.stok_akhir}${sat}</b>${low?' <span class="badge badge-red">menipis</span>':''}</td>
+        <td style="white-space:nowrap;"><button class="btn btn-primary btn-sm" onclick="openAmbilModal('${b.id}')">− Ambil</button> <button class="btn btn-outline btn-sm" onclick="openRiwayatObat('${b.id}')">Riwayat</button> <button class="btn btn-outline btn-sm" onclick="openEditObat('${b.id}')">⚙</button></td>
+      </tr>`;
     }).join('')
-  }</tbody></table>`;
+  }</tbody></table>
+  <div class="muted" style="font-size:12px;margin-top:10px;">Pengambilan mengurangi <b>stok lama</b> dulu, lalu <b>stok baru</b>. Saat ada kiriman baru, buka ⚙ → "Stok Baru Masuk" agar sisa sekarang menjadi stok lama.</div>`;
 }
 window.openBahanModal = () => {
-  showModal('Tambah Bahan', `
-    <div class="form-group"><label class="form-label">Nama Bahan</label><input class="form-control" id="bh-nama" /></div>
+  showModal('Tambah Obat', `
+    <div class="form-group"><label class="form-label">Nama Obat</label><input class="form-control" id="bh-nama" /></div>
     <div class="grid-2">
-      <div class="form-group"><label class="form-label">Satuan</label><input class="form-control" id="bh-satuan" value="gram" /></div>
-      <div class="form-group"><label class="form-label">Stok Awal</label><input type="number" class="form-control" id="bh-stok" value="0" /></div>
+      <div class="form-group"><label class="form-label">Stok Lama</label><input type="number" step="0.5" class="form-control" id="bh-lama" value="0" /></div>
+      <div class="form-group"><label class="form-label">Stok Baru</label><input type="number" step="0.5" class="form-control" id="bh-baru" value="0" /></div>
     </div>
-    <div class="form-group"><label class="form-label">Stok Minimum (alert)</label><input type="number" class="form-control" id="bh-min" value="0" /></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Satuan (opsional)</label><input class="form-control" id="bh-satuan" placeholder="kg / bungkus" /></div>
+      <div class="form-group"><label class="form-label">Stok Minimum</label><input type="number" step="0.5" class="form-control" id="bh-min" value="0" /></div>
+    </div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveBahan()">Simpan</button>`);
 };
 window.saveBahan = async () => {
   const nama=$('bh-nama').value.trim(); if(!nama){ toast('Isi nama','error'); return; }
-  await addDoc(collection(db,'bahan_baku'), { nama, satuan:$('bh-satuan').value.trim()||'gram', stok:parseFloat($('bh-stok').value)||0, stok_minimum:parseFloat($('bh-min').value)||0 });
-  toast('Bahan ditambah','success'); closeHostModal(); loadBahan();
+  await addDoc(collection(db,'bahan_baku'), { nama, satuan:$('bh-satuan').value.trim(), stok_lama:parseFloat($('bh-lama').value)||0, stok_baru:parseFloat($('bh-baru').value)||0, stok_minimum:parseFloat($('bh-min').value)||0 });
+  toast('Obat ditambah','success'); closeHostModal(); loadBahan();
 };
-window.openBeliModal = (preId) => {
-  const opts=M.bahan.map(b=>`<option value="${b.id}" ${b.id===preId?'selected':''}>${esc(b.nama)} (stok ${(b.stok||0)})</option>`).join('');
-  showModal('Tambah Stok / Pembelian', `
-    <div class="form-group"><label class="form-label">Bahan</label><select class="form-control" id="bl-bahan">${opts}</select></div>
-    <div class="form-group"><label class="form-label">Jumlah Ditambah</label><input type="number" class="form-control" id="bl-jml" /></div>
-    <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="bl-cat" placeholder="pembelian, opname, dll" /></div>
-  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveBeli()">Tambah</button>`);
+window.openEditObat = (id) => {
+  const b=M.bahan.find(x=>x.id===id); if(!b) return;
+  const sisa=obatStats(b).stok_akhir;
+  showModal('Edit Obat — '+b.nama, `
+    <div class="form-group"><label class="form-label">Nama</label><input class="form-control" id="eo-nama" value="${esc(b.nama)}" /></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Stok Lama</label><input type="number" step="0.5" class="form-control" id="eo-lama" value="${b.stok_lama||0}" /></div>
+      <div class="form-group"><label class="form-label">Stok Baru</label><input type="number" step="0.5" class="form-control" id="eo-baru" value="${b.stok_baru||0}" /></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Satuan</label><input class="form-control" id="eo-satuan" value="${esc(b.satuan||'')}" /></div>
+      <div class="form-group"><label class="form-label">Stok Minimum</label><input type="number" step="0.5" class="form-control" id="eo-min" value="${b.stok_minimum||0}" /></div>
+    </div>
+    <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;">
+      <div class="muted" style="font-size:12px;margin-bottom:8px;">Stok baru masuk: sisa sekarang (<b>${sisa}</b>) jadi stok lama, riwayat pengambilan obat ini direset.</div>
+      <div class="row-flex"><input type="number" step="0.5" class="form-control" id="eo-restok" placeholder="jumlah stok baru" style="flex:1;" /><button class="btn btn-outline" type="button" onclick="restokObat('${id}')">Stok Baru Masuk</button></div>
+    </div>
+  `, `<button class="btn btn-danger" onclick="delObat('${id}')">Hapus</button><button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveEditObat('${id}')">Simpan</button>`);
 };
-window.saveBeli = async () => {
-  const id=$('bl-bahan').value, jml=parseFloat($('bl-jml').value)||0;
-  if(!id||jml===0){ toast('Isi jumlah','error'); return; }
-  await updateDoc(doc(db,'bahan_baku',id), { stok: increment(jml) });
-  await addDoc(collection(db,'bahan_log'), { bahan_id:id, jumlah:jml, jenis:'masuk', catatan:$('bl-cat').value.trim(), tanggal:todayStr(), created_at:serverTimestamp() });
-  toast('Stok ditambah','success'); closeHostModal(); loadBahan();
+window.saveEditObat = async (id) => {
+  const nama=$('eo-nama').value.trim(); if(!nama){ toast('Isi nama','error'); return; }
+  await updateDoc(doc(db,'bahan_baku',id), { nama, satuan:$('eo-satuan').value.trim(), stok_lama:parseFloat($('eo-lama').value)||0, stok_baru:parseFloat($('eo-baru').value)||0, stok_minimum:parseFloat($('eo-min').value)||0 });
+  toast('Tersimpan','success'); closeHostModal(); loadBahan();
 };
+window.delObat = async (id) => {
+  if(!confirm('Hapus obat ini beserta riwayat pengambilannya?')) return;
+  const ps=M.pengambilan.filter(p=>p.bahan_id===id);
+  const wb=writeBatch(db); ps.forEach(p=>wb.delete(doc(db,'pengambilan_obat',p.id))); wb.delete(doc(db,'bahan_baku',id));
+  await wb.commit(); toast('Dihapus'); closeHostModal(); loadBahan();
+};
+window.restokObat = async (id) => {
+  const b=M.bahan.find(x=>x.id===id); if(!b) return;
+  const jml=parseFloat($('eo-restok').value)||0;
+  if(jml<=0){ toast('Isi jumlah stok baru','error'); return; }
+  const sisa=obatStats(b).stok_akhir;
+  if(!confirm(`Stok baru masuk ${jml}? Sisa sekarang (${sisa}) jadi stok lama & riwayat pengambilan obat ini direset.`)) return;
+  const ps=M.pengambilan.filter(p=>p.bahan_id===id);
+  const wb=writeBatch(db);
+  ps.forEach(p=>wb.delete(doc(db,'pengambilan_obat',p.id)));
+  wb.update(doc(db,'bahan_baku',id), { stok_lama:sisa, stok_baru:jml });
+  await wb.commit(); toast('Stok diperbarui ✅','success'); closeHostModal(); loadBahan();
+};
+window.openAmbilModal = (preId) => {
+  if(!M.bahan.length){ toast('Belum ada obat','error'); return; }
+  const opts=[...M.bahan].sort((a,b)=>a.nama.localeCompare(b.nama)).map(b=>{ const s=obatStats(b); return `<option value="${b.id}" ${b.id===preId?'selected':''}>${esc(b.nama)} (sisa ${s.stok_akhir})</option>`; }).join('');
+  showModal('Ambil Obat', `
+    <div class="form-group"><label class="form-label">Obat</label><select class="form-control" id="am-bahan">${opts}</select></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Jumlah Diambil</label><input type="number" step="0.5" min="0" class="form-control" id="am-jml" /></div>
+      <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="am-tgl" value="${todayStr()}" /></div>
+    </div>
+    <div class="form-group"><label class="form-label">Catatan (opsional)</label><input class="form-control" id="am-cat" placeholder="mis. untuk warna biru" /></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveAmbil()">Simpan Pengambilan</button>`);
+};
+window.saveAmbil = async () => {
+  const id=$('am-bahan').value, jml=parseFloat($('am-jml').value)||0, tgl=$('am-tgl').value;
+  if(!id||jml<=0){ toast('Isi jumlah','error'); return; }
+  const b=M.bahan.find(x=>x.id===id);
+  await addDoc(collection(db,'pengambilan_obat'), { bahan_id:id, bahan_nama:b?.nama||'', jumlah:jml, tanggal:tgl, catatan:$('am-cat').value.trim(), created_by:currentUser.uid, created_at:serverTimestamp() });
+  toast(jml+' '+(b?.nama||'obat')+' diambil ✅','success'); closeHostModal(); loadBahan();
+};
+window.openRiwayatObat = (id) => {
+  const b=M.bahan.find(x=>x.id===id); if(!b) return;
+  const ps=M.pengambilan.filter(p=>p.bahan_id===id).sort((a,b)=>(b.tanggal||'').localeCompare(a.tanggal||''));
+  const s=obatStats(b);
+  showModal('Riwayat — '+b.nama, `
+    <div class="muted" style="font-size:12.5px;margin-bottom:10px;">Total awal <b>${s.total_awal}</b> · Diambil <b>${s.total_ambil}</b> · Sisa <b>${s.stok_akhir}</b></div>
+    ${ps.length? `<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Jumlah</th><th>Catatan</th><th></th></tr></thead><tbody>${ps.map(p=>`<tr><td>${esc(p.tanggal||'-')}</td><td><b>${p.jumlah}</b></td><td>${esc(p.catatan||'')}</td><td><button class="btn btn-danger btn-sm" onclick="delAmbil('${p.id}','${id}')">✕</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Belum ada pengambilan</div>'}
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button><button class="btn btn-primary" onclick="openAmbilModal('${id}')">+ Ambil</button>`);
+};
+window.delAmbil = async (pid,bid) => { if(!confirm('Hapus catatan pengambilan ini?')) return; await deleteDoc(doc(db,'pengambilan_obat',pid)); await loadBahan(); openRiwayatObat(bid); toast('Dihapus'); };
 
 // ===== HPP =====
 function loadHpp(){
@@ -926,8 +988,8 @@ function renderRacikan(){
   const poman = M.warna.filter(w=>w.golongan==='poman');
   return `<div class="card"><div class="card-title">Biaya Obat per Kodi (Poman) <button class="btn btn-outline btn-sm" onclick="openBiayaObatModal()">Ubah</button></div>
     <div class="table-wrap"><table><tbody>${poman.map(w=>`<tr><td>${esc(w.nama)}</td><td style="text-align:right">${rp(biaya[w.nama]||0)}</td></tr>`).join('')||'<tr><td class="muted">isi data awal dulu</td></tr>'}</tbody></table></div></div>
-    <div class="card"><div class="card-title">Racikan Bahan (untuk potong stok otomatis) <button class="btn btn-outline btn-sm" onclick="openRacikanModal()">+ Racikan</button></div>
-    ${M.racikan.length? `<div class="table-wrap"><table><thead><tr><th>Golongan</th><th>Warna</th><th>Komponen</th><th></th></tr></thead><tbody>${M.racikan.map(r=>`<tr><td>${esc(golNama(r.golongan))}</td><td>${esc(warnaById(r.warna_id)?.nama||'-')}</td><td>${(r.komponen||[]).map(k=>esc((M.bahan.find(b=>b.id===k.bahan_id)||{}).nama||'?')+' '+k.jumlah_gram+'g').join(', ')}</td><td><button class="btn btn-danger btn-sm" onclick="delDoc('racikan_obat','${r.id}')">✕</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="muted" style="font-size:12.5px;">Opsional — isi jika ingin potong stok bahan otomatis saat pengobatan dicatat.</div>'}</div>`;
+    <div class="card"><div class="card-title">Racikan Bahan (referensi komposisi) <button class="btn btn-outline btn-sm" onclick="openRacikanModal()">+ Racikan</button></div>
+    ${M.racikan.length? `<div class="table-wrap"><table><thead><tr><th>Golongan</th><th>Warna</th><th>Komponen</th><th></th></tr></thead><tbody>${M.racikan.map(r=>`<tr><td>${esc(golNama(r.golongan))}</td><td>${esc(warnaById(r.warna_id)?.nama||'-')}</td><td>${(r.komponen||[]).map(k=>esc((M.bahan.find(b=>b.id===k.bahan_id)||{}).nama||'?')+' '+k.jumlah_gram+'g').join(', ')}</td><td><button class="btn btn-danger btn-sm" onclick="delDoc('racikan_obat','${r.id}')">✕</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="muted" style="font-size:12.5px;">Opsional — catatan komposisi obat per warna. Stok obat dikurangi lewat menu <b>Stok Obat → Ambil</b> (manual), bukan otomatis.</div>'}</div>`;
 }
 window.openBiayaObatModal = () => {
   const biaya=M.config?.biaya_obat_warna||{}; const poman=M.warna.filter(w=>w.golongan==='poman');
@@ -1018,7 +1080,7 @@ window.seedAll = async () => {
     for(const p of PEK) await addDoc(collection(db,'pekerja'), p);
     // BAHAN
     const BAHAN=['Merah B mtk jpn','Garam biru mtk jpn','R mtk jpn','OL I','ASG I','ASD I','BB','ASC I','Sol hijau ny','Sol coklat ny','BS I','BO 80 D','66 29%','Kustik','Nitrit','GG','Garam item','Kaporit','Mori/Primatex','Lilin','Solda','Plastik','Minyak'];
-    for(const b of BAHAN) await addDoc(collection(db,'bahan_baku'), {nama:b,satuan:'gram',stok:0,stok_minimum:0});
+    for(const b of BAHAN) await addDoc(collection(db,'bahan_baku'), {nama:b,satuan:'',stok_lama:0,stok_baru:0,stok_minimum:0});
     // CONFIG
     await setDoc(doc(db,'config_produksi','hpp'), {
       hpp_tetap:{kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900},
