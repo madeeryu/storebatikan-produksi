@@ -933,28 +933,64 @@ function renderAlur(){
     return `<div class="card"><div class="card-title"><span>${esc(g.nama)}</span><button class="btn btn-outline btn-sm" onclick="openAlurModal('${g.id}')">+ Tahap</button></div>` +
       cabs.map(cab=>{
         const steps=alurSteps(g.id,cab);
-        if(!steps.length && cab===null && g.id!=='poman') {}
-        return `<div style="margin-bottom:8px;">${cab?`<div class="muted" style="font-size:12px;font-weight:700;">Cabang ${cab} ${cab==='A'?'(selain putih/coklat)':'(putih/coklat)'}</div>`:''}
-          <div class="stage-flow" style="margin-top:4px;">${steps.map(s=>`<span class="stage-pill">${s.urutan}. ${esc(s.nama_tahap)} <span class="muted">[${esc(s.jenis_pekerjaan)}${s.butuh_warna?' • warna':''}${s.only_warna?' • '+s.only_warna.join('/'):''}]</span> <span style="cursor:pointer;color:var(--red-text);" onclick="delDoc('alur','${s.id}')">✕</span></span>`).join(' → ')||'<span class="muted" style="font-size:12px;">belum ada alur</span>'}</div></div>`;
+        return `<div style="margin-bottom:10px;">${cab?`<div class="muted" style="font-size:12px;font-weight:700;">Cabang ${cab} ${cab==='A'?'(selain putih/coklat)':'(putih/coklat)'}</div>`:''}
+          <div class="stage-flow" style="margin-top:6px;">${steps.map((s,i)=>`<span class="stage-pill">${s.urutan}. ${esc(s.nama_tahap)} <span class="muted">[${esc(s.jenis_pekerjaan)}${s.butuh_warna?' • warna':''}${s.only_warna?' • '+s.only_warna.join('/'):''}]</span> <span style="cursor:pointer;color:var(--text-muted);${i===0?'opacity:.25;pointer-events:none;':''}" title="Naik" onclick="moveAlur('${s.id}','up')">▲</span><span style="cursor:pointer;color:var(--text-muted);${i===steps.length-1?'opacity:.25;pointer-events:none;':''}" title="Turun" onclick="moveAlur('${s.id}','down')">▼</span> <span style="cursor:pointer;color:var(--primary);" title="Sisipkan setelah ini" onclick="openAlurModal('${g.id}','${cab||''}',${s.urutan+1})">＋</span> <span style="cursor:pointer;color:var(--red-text);" title="Hapus" onclick="delDoc('alur','${s.id}')">✕</span></span>`).join(' → ')||'<span class="muted" style="font-size:12px;">belum ada alur</span>'}</div></div>`;
       }).join('') + `</div>`;
   }).join('');
 }
-window.openAlurModal = (gol) => {
-  const cabSel = gol==='poman'? `<div class="form-group"><label class="form-label">Cabang</label><select class="form-control" id="al-cab"><option value="A">A (selain putih/coklat)</option><option value="B">B (putih/coklat)</option></select></div>`:'<input type="hidden" id="al-cab" value="">';
-  showModal('Tambah Tahap Alur', `${cabSel}
-    <div class="grid-2"><div class="form-group"><label class="form-label">Urutan</label><input type="number" class="form-control" id="al-urut" value="1"></div>
-    <div class="form-group"><label class="form-label">Jenis</label><select class="form-control" id="al-jenis"><option>cap</option><option>obat</option><option>lorod</option><option>jemur</option><option>batik</option></select></div></div>
+function alurPosOptions(gol, cab){
+  const steps=alurSteps(gol,cab);
+  let opts = `<option value="1">⬆ Paling awal (jadi tahap 1)</option>`;
+  steps.forEach(s=>{ opts += `<option value="${s.urutan+1}">Sisipkan setelah ${s.urutan}. ${esc(s.nama_tahap)}</option>`; });
+  return opts;
+}
+window.alurRebuildPos = (gol, presetUrut) => {
+  const cab = $('al-cab').value||null;
+  $('al-urut').innerHTML = alurPosOptions(gol, cab);
+  const sel=$('al-urut');
+  if(presetUrut!=null && [...sel.options].some(o=>o.value==String(presetUrut))) sel.value=String(presetUrut);
+  else sel.value = sel.options[sel.options.length-1]?.value || '1'; // default: di akhir
+};
+window.openAlurModal = (gol, presetCab, presetUrut) => {
+  const cabSel = gol==='poman'
+    ? `<div class="form-group"><label class="form-label">Cabang</label><select class="form-control" id="al-cab" onchange="alurRebuildPos('${gol}')"><option value="A">A (selain putih/coklat)</option><option value="B">B (putih/coklat)</option></select></div>`
+    : '<input type="hidden" id="al-cab" value="">';
+  showModal('Tambah / Sisipkan Tahap', `${cabSel}
+    <div class="form-group"><label class="form-label">Posisi</label><select class="form-control" id="al-urut"></select></div>
     <div class="form-group"><label class="form-label">Nama Tahap</label><input class="form-control" id="al-nama" placeholder="Pengobatan / Lorod / ..."></div>
+    <div class="form-group"><label class="form-label">Jenis Pekerjaan</label><select class="form-control" id="al-jenis"><option>cap</option><option>obat</option><option>lorod</option><option>jemur</option><option>batik</option></select></div>
     <div class="form-group"><label style="font-size:13px;"><input type="checkbox" id="al-warna"> Butuh pilih warna (bironan/PT/PL)</label></div>
     <div class="form-group"><label class="form-label">Hanya warna tertentu (opsional, pisah koma)</label><input class="form-control" id="al-only" placeholder="Coklat"></div>
+    <div class="muted" style="font-size:12px;">Tahap di posisi ini & sesudahnya otomatis bergeser nomornya.</div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveAlur('${gol}')">Simpan</button>`);
+  if(gol==='poman' && presetCab) $('al-cab').value=presetCab;
+  alurRebuildPos(gol, presetUrut);
 };
 window.saveAlur = async (gol) => {
   const nama=$('al-nama').value.trim(); if(!nama) return toast('Isi nama tahap','error');
+  const cab = $('al-cab').value||null;
+  const urut = parseInt($('al-urut').value)||1;
   const only=$('al-only').value.trim();
-  const d={ golongan:gol, cabang: $('al-cab').value||null, urutan:parseInt($('al-urut').value)||1, nama_tahap:nama, jenis_pekerjaan:$('al-jenis').value, butuh_warna:$('al-warna').checked };
+  const wb = writeBatch(db);
+  // geser semua tahap (golongan+cabang sama) yang urutannya >= posisi sisip
+  alurSteps(gol, cab).filter(a=>a.urutan>=urut).forEach(a=> wb.update(doc(db,'alur',a.id), { urutan:a.urutan+1 }));
+  const d={ golongan:gol, cabang:cab, urutan:urut, nama_tahap:nama, jenis_pekerjaan:$('al-jenis').value, butuh_warna:$('al-warna').checked };
   if(only) d.only_warna = only.split(',').map(s=>s.trim()).filter(Boolean);
-  await addDoc(collection(db,'alur'), d); await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal();
+  wb.set(doc(collection(db,'alur')), d);
+  await wb.commit();
+  await loadAllMaster(); renderMaster(); toast('Tahap tersimpan','success'); closeHostModal();
+};
+window.moveAlur = async (id, dir) => {
+  const s = M.alur.find(a=>a.id===id); if(!s) return;
+  const sibs = alurSteps(s.golongan, s.cabang||null);
+  const idx = sibs.findIndex(a=>a.id===id);
+  const swapIdx = dir==='up'? idx-1 : idx+1;
+  if(swapIdx<0 || swapIdx>=sibs.length) return;
+  const other = sibs[swapIdx];
+  const wb = writeBatch(db);
+  wb.update(doc(db,'alur',s.id), { urutan: other.urutan });
+  wb.update(doc(db,'alur',other.id), { urutan: s.urutan });
+  await wb.commit(); await loadAllMaster(); renderMaster();
 };
 
 function renderPekerja(){
