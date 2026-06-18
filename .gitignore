@@ -1,0 +1,14 @@
+# Hanya app produksi yang di-deploy di repo ini.
+# Abaikan app lain & dokumen internal (HPP, harga, data pekerja).
+index_grosir.html
+index_gas.html
+index_produksi.html
+*.md
+!README.md
+MASTER_PROMPT_*.md
+dokumentasi-*.md
+.claude/
+.vscode/
+node_modules/
+.DS_Store
+Thumbs.db

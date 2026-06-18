@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#4F46E5" />
+  <meta name="description" content="Batik AN — Monitoring Produksi" />
+  <title>Batik AN — Produksi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>" />
+  <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22Batik%20AN%20Produksi%22%2C%22short_name%22%3A%22Produksi%22%2C%22theme_color%22%3A%22%234F46E5%22%2C%22background_color%22%3A%22%23F5F6FA%22%2C%22display%22%3A%22standalone%22%7D" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #4F46E5;
+      --primary-dark: #4338CA;
+      --primary-light: #EEF2FF;
+      --primary-text: #4F46E5;
+      --bg: #F5F6FA;
+      --white: #FFFFFF;
+      --border: #E8EAED;
+      --input-border: #DDE1E7;
+      --text-primary: #111827;
+      --text-secondary: #6B7280;
+      --text-muted: #9CA3AF;
+      --green-bg: #DCFCE7; --green-text: #16A34A;
+      --red-bg: #FEE2E2; --red-text: #DC2626;
+      --amber-bg: #FEF3C7; --amber-text: #D97706;
+      --blue-bg: #EFF6FF; --blue-text: #2563EB;
+      --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+      --radius: 12px;
+      --sidebar-w: 240px;
+    }
+    html, body { height: 100%; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); }
+
+    /* LOGIN */
+    #login-page { display:none; min-height:100vh; align-items:center; justify-content:center; padding:20px; background:linear-gradient(135deg,#EEF2FF,#F5F6FA); }
+    .login-card { background:var(--white); border-radius:18px; box-shadow:0 10px 40px rgba(0,0,0,.08); padding:32px 28px; width:100%; max-width:380px; }
+    .login-logo { text-align:center; margin-bottom:20px; }
+    .login-logo .brand { font-size:24px; font-weight:800; color:var(--primary); }
+    .login-logo .tagline { font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .login-title { font-size:20px; font-weight:700; }
+    .login-sub { font-size:13px; color:var(--text-secondary); margin-bottom:18px; }
+
+    /* LAYOUT */
+    #app { display:flex; min-height:100vh; overflow-x:hidden; }
+    #sidebar { width:var(--sidebar-w); min-height:100vh; background:var(--white); border-right:1px solid var(--border); position:fixed; top:0; left:0; display:flex; flex-direction:column; z-index:100; }
+    @media (max-width:768px){
+      #sidebar { left:calc(-1 * var(--sidebar-w)) !important; transition:left .28s cubic-bezier(.4,0,.2,1); z-index:300; }
+      #sidebar.mobile-open { left:0 !important; box-shadow:4px 0 24px rgba(0,0,0,.18); }
+      #sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:299; }
+      #sidebar-overlay.open { display:block; }
+      #main-content { margin-left:0 !important; width:100% !important; }
+      #app { display:block !important; }
+      #topbar-mobile { display:flex !important; }
+    }
+    .sidebar-logo { padding:20px 20px 16px; border-bottom:1px solid var(--border); }
+    .sidebar-logo .brand { font-size:18px; font-weight:800; color:var(--primary); }
+    .sidebar-logo .sub { font-size:11px; color:var(--text-muted); font-weight:500; margin-top:2px; }
+    .sidebar-nav { flex:1; padding:12px 0; overflow-y:auto; }
+    .nav-section { padding:10px 16px 4px; font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.08em; }
+    .nav-item { display:flex; align-items:center; gap:10px; padding:10px 16px; margin:1px 8px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:500; color:var(--text-secondary); transition:all .15s; text-decoration:none; }
+    .nav-item:hover { background:var(--bg); color:var(--text-primary); }
+    .nav-item.active { background:var(--primary-light); color:var(--primary); font-weight:600; }
+    .nav-item .nav-icon { width:20px; height:20px; flex-shrink:0; }
+    .sidebar-user { padding:16px; border-top:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+    .user-avatar { width:36px; height:36px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:white; flex-shrink:0; }
+    .user-info { flex:1; min-width:0; }
+    .user-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .user-role { font-size:11px; color:var(--text-muted); }
+    .btn-logout { background:none; border:none; cursor:pointer; color:var(--text-muted); padding:4px; border-radius:6px; }
+    .btn-logout:hover { color:var(--red-text); background:var(--red-bg); }
+
+    #main-content { margin-left:var(--sidebar-w); flex:1; min-height:100vh; }
+    #topbar-mobile { display:none; background:var(--primary); color:white; padding:12px 16px; align-items:center; gap:12px; position:sticky; top:0; z-index:90; }
+    .topbar-title { font-size:16px; font-weight:700; flex:1; }
+
+    .page { display:none; padding:24px; max-width:1100px; margin:0 auto; }
+    .page.active { display:block; }
+    .page-header { margin-bottom:20px; }
+    .page-title { font-size:22px; font-weight:800; }
+    .page-subtitle { font-size:13px; color:var(--text-secondary); margin-top:2px; }
+
+    /* COMPONENTS */
+    .card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px; margin-bottom:16px; }
+    .card-title { font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; justify-content:space-between; }
+    .btn { display:inline-flex; align-items:center; gap:6px; padding:10px 16px; border-radius:9px; font-size:14px; font-weight:600; cursor:pointer; border:1px solid transparent; font-family:inherit; transition:all .12s; }
+    .btn-primary { background:var(--primary); color:white; }
+    .btn-primary:hover { background:var(--primary-dark); }
+    .btn-outline { background:var(--white); border-color:var(--input-border); color:var(--text-primary); }
+    .btn-outline:hover { border-color:var(--primary); color:var(--primary); }
+    .btn-sm { padding:6px 12px; font-size:12.5px; border-radius:7px; }
+    .btn-danger { background:var(--red-bg); color:var(--red-text); }
+    .btn:disabled { opacity:.55; cursor:not-allowed; }
+    .w-full { width:100%; justify-content:center; }
+
+    .form-group { margin-bottom:14px; }
+    .form-label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--text-primary); }
+    .form-control { width:100%; padding:11px 13px; border:1.5px solid var(--input-border); border-radius:9px; font-size:14px; font-family:inherit; background:var(--white); color:var(--text-primary); transition:border .12s; }
+    .form-control:focus { outline:none; border-color:var(--primary); }
+    select.form-control { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236B7280' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:34px; }
+    .error-msg { background:var(--red-bg); color:var(--red-text); padding:9px 12px; border-radius:8px; font-size:13px; margin-bottom:12px; display:none; }
+
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
+    .stat-card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; }
+    .stat-card .label { font-size:12px; color:var(--text-secondary); font-weight:500; }
+    .stat-card .value { font-size:24px; font-weight:800; margin-top:4px; }
+    .stat-card .sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+    table { width:100%; border-collapse:collapse; font-size:13.5px; }
+    th { text-align:left; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; padding:8px 10px; border-bottom:2px solid var(--border); white-space:nowrap; }
+    td { padding:10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    .table-wrap { overflow-x:auto; }
+
+    .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+    .badge-green { background:var(--green-bg); color:var(--green-text); }
+    .badge-red { background:var(--red-bg); color:var(--red-text); }
+    .badge-amber { background:var(--amber-bg); color:var(--amber-text); }
+    .badge-blue { background:var(--blue-bg); color:var(--blue-text); }
+    .badge-gray { background:#F1F2F4; color:var(--text-secondary); }
+    .chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; font-size:12px; font-weight:600; background:var(--bg); border:1px solid var(--border); cursor:pointer; }
+    .chip.active { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
+
+    .empty { text-align:center; padding:40px 20px; color:var(--text-muted); }
+    .empty .ico { font-size:38px; margin-bottom:8px; }
+
+    /* MODAL */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(17,24,39,.5); z-index:500; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:var(--white); border-radius:16px; width:100%; max-width:480px; margin:auto; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+    .modal-head { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .modal-head .title { font-size:17px; font-weight:700; }
+    .modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-muted); line-height:1; }
+    .modal-body { padding:20px; }
+    .modal-foot { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+
+    /* TOAST */
+    #toast-wrap { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:900; display:flex; flex-direction:column; gap:8px; align-items:center; }
+    .toast { background:#111827; color:white; padding:11px 18px; border-radius:10px; font-size:13.5px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.2); animation:toastIn .2s; max-width:90vw; }
+    .toast.success { background:#16A34A; } .toast.error { background:#DC2626; }
+    @keyframes toastIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
+
+    .row-flex { display:flex; gap:10px; flex-wrap:wrap; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:520px){ .grid-2{ grid-template-columns:1fr; } }
+    .muted { color:var(--text-muted); }
+    .hidden { display:none !important; }
+    .pill-tab { display:flex; gap:6px; background:var(--bg); padding:4px; border-radius:10px; margin-bottom:14px; flex-wrap:wrap; }
+    .pill-tab button { flex:1; min-width:80px; border:none; background:none; padding:8px 12px; border-radius:7px; font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; font-family:inherit; }
+    .pill-tab button.active { background:var(--white); color:var(--primary); box-shadow:var(--shadow); }
+    .stage-flow { display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:11.5px; }
+    .stage-pill { padding:3px 8px; border-radius:6px; background:var(--bg); border:1px solid var(--border); white-space:nowrap; }
+    .stage-pill.done { background:var(--green-bg); color:var(--green-text); border-color:transparent; }
+    .stage-pill.current { background:var(--primary); color:white; border-color:transparent; }
+    .kodi-input { width:90px; text-align:center; }
+  </style>
+</head>
+<body>
+
+<!-- ==================== LOGIN ==================== -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="brand">🎨 Batik AN</div>
+      <div class="tagline">Monitoring Produksi</div>
+    </div>
+    <div class="login-title">Selamat Datang</div>
+    <div class="login-sub">Masuk untuk melanjutkan</div>
+    <div class="error-msg" id="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" id="login-email" class="form-control" placeholder="email@contoh.com" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" id="login-password" class="form-control" placeholder="••••••••" />
+    </div>
+    <button class="btn btn-primary w-full" id="btn-login">Masuk</button>
+  </div>
+</div>
+
+<!-- ==================== APP ==================== -->
+<div id="app" style="display:none;">
+  <div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand">🎨 Batik AN</div>
+      <div class="sub">Monitoring Produksi</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Utama</div>
+      <a class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">📊 Dashboard</a>
+      <a class="nav-item" data-page="papan" onclick="navigateTo('papan')">📋 Papan Tulis</a>
+      <a class="nav-item" data-page="batch" onclick="navigateTo('batch')">🧵 Batch & WIP</a>
+      <div class="nav-section">Monitoring</div>
+      <a class="nav-item" data-page="pekerja-rekap" onclick="navigateTo('pekerja-rekap')">👷 Hasil Pekerja</a>
+      <a class="nav-item" data-page="bahan" onclick="navigateTo('bahan')">🧪 Stok Bahan <span class="badge badge-red hidden" id="bahan-badge" style="margin-left:auto;">0</span></a>
+      <a class="nav-item" data-page="hpp" onclick="navigateTo('hpp')">💰 HPP</a>
+      <div class="nav-section">Pengaturan</div>
+      <a class="nav-item" data-page="master" onclick="navigateTo('master')">⚙️ Master Data</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebar-avatar">A</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-username">Loading...</div>
+        <div class="user-role" id="sidebar-role">-</div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()" title="Keluar">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div id="topbar-mobile">
+    <button onclick="toggleMobileSidebar()" style="background:none;border:none;color:white;cursor:pointer;display:flex;">
+      <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="topbar-title" id="mobile-page-title">Dashboard</div>
+    <button style="background:none;border:none;color:white;cursor:pointer;" onclick="doLogout()">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+    </button>
+  </div>
+
+  <main id="main-content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header"><div class="page-title">Dashboard Produksi</div><div class="page-subtitle" id="dash-date">—</div></div>
+      <div class="stat-grid" id="dash-stats"></div>
+      <div class="card">
+        <div class="card-title">🔴 Hasil Mengendap</div>
+        <div id="dash-mengendap"><div class="empty">Memuat…</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">⏳ Beban Antrian Pengobat</div>
+        <div id="dash-beban"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📦 Posisi Kodi per Tahap</div>
+        <div id="dash-tahap"></div>
+      </div>
+    </div>
+
+    <!-- PAPAN TULIS -->
+    <div class="page" id="page-papan">
+      <div class="page-header"><div class="page-title">📋 Papan Tulis Digital</div><div class="page-subtitle">Catat hasil kerja harian — bisa banyak entri</div></div>
+      <div class="card">
+        <div class="card-title">Tambah Hasil <button class="btn btn-primary btn-sm" onclick="openLogModal()">+ Entri</button></div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Tanggal</label>
+          <input type="date" id="papan-date" class="form-control" style="max-width:200px;" onchange="loadPapan()" />
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Hasil Hari Ini</div>
+        <div id="papan-list"><div class="empty">Memuat…</div></div>
+      </div>
+    </div>
+
+    <!-- BATCH -->
+    <div class="page" id="page-batch">
+      <div class="page-header"><div class="page-title">🧵 Batch & WIP</div><div class="page-subtitle">Kelola batch produksi dan posisi kodi</div></div>
+      <div style="margin-bottom:14px;"><button class="btn btn-primary" onclick="openBatchModal()">+ Buat Batch</button></div>
+      <div class="pill-tab" id="batch-tabs">
+        <button class="active" data-st="berjalan" onclick="setBatchTab('berjalan')">Berjalan</button>
+        <button data-st="selesai" onclick="setBatchTab('selesai')">Selesai</button>
+        <button data-st="semua" onclick="setBatchTab('semua')">Semua</button>
+      </div>
+      <div id="batch-list"><div class="empty">Memuat…</div></div>
+    </div>
+
+    <!-- HASIL PEKERJA -->
+    <div class="page" id="page-pekerja-rekap">
+      <div class="page-header"><div class="page-title">👷 Hasil Pekerja</div><div class="page-subtitle">Rekap kodi per pekerja vs target</div></div>
+      <div class="row-flex" style="margin-bottom:14px;">
+        <input type="date" id="rekap-from" class="form-control" style="max-width:170px;" onchange="loadPekerjaRekap()" />
+        <input type="date" id="rekap-to" class="form-control" style="max-width:170px;" onchange="loadPekerjaRekap()" />
+      </div>
+      <div class="card"><div id="pekerja-rekap-list"><div class="empty">Memuat…</div></div></div>
+    </div>
+
+    <!-- BAHAN -->
+    <div class="page" id="page-bahan">
+      <div class="page-header"><div class="page-title">🧪 Stok Bahan</div><div class="page-subtitle">Pemakaian otomatis dari log pengobatan</div></div>
+      <div style="margin-bottom:14px;" class="row-flex">
+        <button class="btn btn-primary" onclick="openBahanModal()">+ Bahan</button>
+        <button class="btn btn-outline" onclick="openBeliModal()">+ Pembelian / Stok</button>
+      </div>
+      <div class="card"><div class="table-wrap"><div id="bahan-list"><div class="empty">Memuat…</div></div></div></div>
+    </div>
+
+    <!-- HPP -->
+    <div class="page" id="page-hpp">
+      <div class="page-header"><div class="page-title">💰 HPP per Kodi</div><div class="page-subtitle">Harga pokok produksi per warna</div></div>
+      <div class="card">
+        <div class="card-title">Komponen Biaya Tetap <button class="btn btn-outline btn-sm" onclick="openHppConfigModal()">Ubah</button></div>
+        <div id="hpp-config"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">HPP per Warna (Poman)</div>
+        <div class="table-wrap"><div id="hpp-table"></div></div>
+      </div>
+    </div>
+
+    <!-- MASTER DATA -->
+    <div class="page" id="page-master">
+      <div class="page-header"><div class="page-title">⚙️ Master Data</div><div class="page-subtitle">Golongan, tipe, warna, alur, pekerja, racikan</div></div>
+      <div class="card" id="seed-card">
+        <div class="card-title">🌱 Data Awal</div>
+        <p class="muted" style="font-size:13px;margin-bottom:12px;">Isi otomatis golongan, tipe, warna, alur tahapan, pekerja, bahan, & konfigurasi HPP sesuai standar Batik AN. Aman dijalankan sekali di awal.</p>
+        <button class="btn btn-primary" id="btn-seed" onclick="seedAll()">Isi Data Awal</button>
+      </div>
+      <div class="pill-tab" id="master-tabs">
+        <button class="active" data-m="golongan" onclick="setMasterTab('golongan')">Golongan/Tipe</button>
+        <button data-m="warna" onclick="setMasterTab('warna')">Warna</button>
+        <button data-m="alur" onclick="setMasterTab('alur')">Alur</button>
+        <button data-m="pekerja" onclick="setMasterTab('pekerja')">Pekerja</button>
+        <button data-m="racikan" onclick="setMasterTab('racikan')">Racikan</button>
+        <button data-m="ambang" onclick="setMasterTab('ambang')">Ambang</button>
+      </div>
+      <div id="master-content"><div class="empty">Memuat…</div></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- GENERIC MODAL HOST -->
+<div class="modal-overlay" id="modal-host">
+  <div class="modal" id="modal-box">
+    <div class="modal-head"><div class="title" id="modal-title">Modal</div><button class="modal-close" onclick="closeHostModal()">×</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<div id="toast-wrap"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, query, where, orderBy, writeBatch, serverTimestamp, increment, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// ===== SAMA DENGAN APP GROSIR (satu proyek/DB) =====
+const firebaseConfig = {
+  apiKey: "AIzaSyDmBWaM-0Mj34FlQbOqkZR5nv6D0Vl5aIw",
+  authDomain: "store-batik-an.firebaseapp.com",
+  projectId: "store-batik-an",
+  storageBucket: "store-batik-an.firebasestorage.app",
+  messagingSenderId: "1016593352699",
+  appId: "1:1016593352699:web:6f13430d9832bbae8f6d5e",
+  measurementId: "G-CW6Z3BMV04"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ===== STATE =====
+let currentUser = null, currentUserData = null;
+const M = { golongan:[], tipe:[], warna:[], alur:[], pekerja:[], bahan:[], racikan:[], config:null };
+let batchTab = 'berjalan', masterTab = 'golongan';
+
+// ===== HELPERS =====
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rp = n => 'Rp ' + Math.round(n||0).toLocaleString('id-ID');
+const todayStr = () => new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD local
+function toast(msg, type){ const w=$('toast-wrap'); const t=document.createElement('div'); t.className='toast '+(type||''); t.textContent=msg; w.appendChild(t); setTimeout(()=>t.remove(),2800); }
+function golNama(id){ return (M.golongan.find(g=>g.id===id)||{}).nama || id; }
+function warnaById(id){ return M.warna.find(w=>w.id===id); }
+function cabangFor(golId, warnaNama){ if(golId!=='poman') return null; return (['Putih','Coklat'].includes(warnaNama)) ? 'B' : 'A'; }
+const isOwner = () => currentUserData?.role === 'owner';
+
+// ===== AUTH =====
+$('btn-login').onclick = async () => {
+  const email=$('login-email').value.trim(), pass=$('login-password').value;
+  const err=$('login-error'); err.style.display='none';
+  if(!email||!pass){ err.textContent='Isi email & password'; err.style.display='block'; return; }
+  $('btn-login').disabled=true; $('btn-login').textContent='Memproses…';
+  try { await signInWithEmailAndPassword(auth, email, pass); }
+  catch(e){ err.textContent='Login gagal: '+(e.code||e.message); err.style.display='block'; $('btn-login').disabled=false; $('btn-login').textContent='Masuk'; }
+};
+$('login-password').addEventListener('keydown', e=>{ if(e.key==='Enter') $('btn-login').click(); });
+window.doLogout = () => signOut(auth);
+
+onAuthStateChanged(auth, async (user) => {
+  if(user){
+    currentUser = user;
+    try { const u=await getDoc(doc(db,'users',user.uid)); currentUserData = u.exists()? {id:u.id,...u.data()} : {nama:user.email.split('@')[0],role:'karyawan'}; }
+    catch(e){ currentUserData = {nama:user.email.split('@')[0],role:'karyawan'}; }
+    await showApp();
+  } else { currentUser=null; currentUserData=null; showLogin(); }
+});
+function showLogin(){ $('login-page').style.display='flex'; $('app').style.display='none'; $('btn-login').disabled=false; $('btn-login').textContent='Masuk'; }
+async function showApp(){
+  $('login-page').style.display='none'; $('app').style.display='flex';
+  const nm=currentUserData?.nama||'User', role=currentUserData?.role||'karyawan';
+  $('sidebar-username').textContent=nm; $('sidebar-role').textContent= role==='owner'?'👑 Owner':'👤 Karyawan';
+  $('sidebar-avatar').textContent=(nm[0]||'U').toUpperCase();
+  await loadAllMaster();
+  navigateTo('dashboard');
+}
+
+// ===== NAV =====
+const pageTitles={ dashboard:'Dashboard', papan:'Papan Tulis', batch:'Batch & WIP', 'pekerja-rekap':'Hasil Pekerja', bahan:'Stok Bahan', hpp:'HPP', master:'Master Data' };
+window.navigateTo = (page) => {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('page-'+page)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.page===page));
+  $('mobile-page-title').textContent = pageTitles[page]||'';
+  closeMobileSidebar();
+  if(page==='dashboard') loadDashboard();
+  if(page==='papan'){ if(!$('papan-date').value) $('papan-date').value=todayStr(); loadPapan(); }
+  if(page==='batch') loadBatchList();
+  if(page==='pekerja-rekap'){ if(!$('rekap-from').value){ const d=new Date(); d.setDate(d.getDate()-6); $('rekap-from').value=d.toLocaleDateString('sv-SE'); $('rekap-to').value=todayStr(); } loadPekerjaRekap(); }
+  if(page==='bahan') loadBahan();
+  if(page==='hpp') loadHpp();
+  if(page==='master') renderMaster();
+};
+window.toggleMobileSidebar = () => { $('sidebar').classList.toggle('mobile-open'); $('sidebar-overlay').classList.toggle('open'); };
+window.closeMobileSidebar = () => { $('sidebar').classList.remove('mobile-open'); $('sidebar-overlay').classList.remove('open'); };
+
+// ===== GENERIC MODAL =====
+function showModal(title, bodyHtml, footHtml){ $('modal-title').textContent=title; $('modal-body').innerHTML=bodyHtml; $('modal-foot').innerHTML=footHtml||''; $('modal-host').classList.add('open'); }
+window.closeHostModal = () => $('modal-host').classList.remove('open');
+
+// ===== LOAD MASTER =====
+async function loadAllMaster(){
+  const cols=['golongan','tipe_produk','warna','alur','pekerja','bahan_baku','racikan_obat'];
+  const [gol,tipe,warna,alur,pekerja,bahan,racikan] = await Promise.all(cols.map(c=>getDocs(collection(db,c))));
+  M.golongan = gol.docs.map(d=>({id:d.id,...d.data()}));
+  M.tipe     = tipe.docs.map(d=>({id:d.id,...d.data()}));
+  M.warna    = warna.docs.map(d=>({id:d.id,...d.data()}));
+  M.alur     = alur.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.urutan||0)-(b.urutan||0));
+  M.pekerja  = pekerja.docs.map(d=>({id:d.id,...d.data()}));
+  M.bahan    = bahan.docs.map(d=>({id:d.id,...d.data()}));
+  M.racikan  = racikan.docs.map(d=>({id:d.id,...d.data()}));
+  try { const c=await getDoc(doc(db,'config_produksi','hpp')); M.config = c.exists()? c.data() : null; } catch(e){ M.config=null; }
+  updateBahanBadge();
+}
+function updateBahanBadge(){
+  const low = M.bahan.filter(b=>(b.stok||0) <= (b.stok_minimum||0) && (b.stok_minimum||0)>0).length;
+  const badge=$('bahan-badge'); if(!badge) return;
+  if(low>0){ badge.textContent=low; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+}
+
+// ===== ALUR HELPERS =====
+function alurSteps(golId, cabang){
+  return M.alur.filter(a=>a.golongan===golId && (a.cabang||null)===(cabang||null)).sort((a,b)=>a.urutan-b.urutan);
+}
+function nextStep(golId, cabang, warnaNama, curUrutan){
+  const steps = alurSteps(golId, cabang).filter(s=>s.urutan>curUrutan && (!s.only_warna || s.only_warna.includes(warnaNama)));
+  return steps.length? steps[0] : null;
+}
+function firstStep(golId, cabang){ const s=alurSteps(golId,cabang); return s[0]||null; }
+
+// ===== DASHBOARD =====
+async function loadDashboard(){
+  $('dash-date').textContent = new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const [batchSnap, wipSnap] = await Promise.all([
+    getDocs(query(collection(db,'batch'), where('status','==','berjalan'))),
+    getDocs(collection(db,'wip'))
+  ]);
+  const batches = batchSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const wips = wipSnap.docs.map(d=>({id:d.id,...d.data()})).filter(w=>(w.jumlah_kodi||0)>0);
+  const totalKodi = wips.reduce((s,w)=>s+(w.jumlah_kodi||0),0);
+  const obatKodi = wips.filter(w=>w.jenis_pekerjaan==='obat').reduce((s,w)=>s+(w.jumlah_kodi||0),0);
+  // mengendap
+  const today = todayStr();
+  const ambang = (M.config?.ambang)||{cap:2,obat:3,batik:4,lorod:3,jemur:2};
+  const mengendap = wips.filter(w=>{
+    const masuk = w.tanggal_masuk_tahap; if(!masuk) return false;
+    const umur = Math.floor((new Date(today)-new Date(masuk))/86400000);
+    return umur > (ambang[w.jenis_pekerjaan]??3);
+  }).sort((a,b)=> new Date(a.tanggal_masuk_tahap)-new Date(b.tanggal_masuk_tahap));
+
+  $('dash-stats').innerHTML = `
+    <div class="stat-card"><div class="label">Batch Berjalan</div><div class="value">${batches.length}</div></div>
+    <div class="stat-card"><div class="label">Total Kodi WIP</div><div class="value">${totalKodi}</div><div class="sub">sedang diproses</div></div>
+    <div class="stat-card"><div class="label">Antri Pengobat</div><div class="value" style="color:var(--amber-text)">${obatKodi}</div><div class="sub">kodi menunggu obat</div></div>
+    <div class="stat-card"><div class="label">Mengendap</div><div class="value" style="color:var(--red-text)">${mengendap.length}</div><div class="sub">grup kodi lewat ambang</div></div>`;
+
+  const batchName = id => { const b=batches.find(x=>x.id===id); return b? b.kode : '—'; };
+  $('dash-mengendap').innerHTML = mengendap.length ? `<div class="table-wrap"><table><thead><tr><th>Batch</th><th>Tahap</th><th>Warna</th><th>Kodi</th><th>Umur</th></tr></thead><tbody>${
+    mengendap.map(w=>{ const umur=Math.floor((new Date(today)-new Date(w.tanggal_masuk_tahap))/86400000);
+      return `<tr><td>${esc(batchName(w.batch_id))}</td><td>${esc(w.nama_tahap)}</td><td>${esc(w.warna_nama||'-')}</td><td><b>${w.jumlah_kodi}</b></td><td><span class="badge badge-red">${umur} hari</span></td></tr>`;
+    }).join('')}</tbody></table></div>` : '<div class="empty"><div class="ico">✅</div>Tidak ada hasil mengendap</div>';
+
+  // beban pengobat per golongan/warna
+  const beban={};
+  wips.filter(w=>w.jenis_pekerjaan==='obat').forEach(w=>{ const k=golNama(w.golongan)+' • '+(w.warna_nama||'-'); beban[k]=(beban[k]||0)+(w.jumlah_kodi||0); });
+  const bk=Object.keys(beban).sort((a,b)=>beban[b]-beban[a]);
+  $('dash-beban').innerHTML = bk.length ? `<div class="row-flex">${bk.map(k=>`<div class="chip">${esc(k)} <b>${beban[k]} kodi</b></div>`).join('')}</div>` : '<div class="muted" style="font-size:13px;">Tidak ada antrian pengobatan.</div>';
+
+  // posisi per tahap
+  const perTahap={};
+  wips.forEach(w=>{ const k=golNama(w.golongan)+' — '+w.nama_tahap; perTahap[k]=(perTahap[k]||0)+(w.jumlah_kodi||0); });
+  const tk=Object.keys(perTahap);
+  $('dash-tahap').innerHTML = tk.length ? `<div class="table-wrap"><table><tbody>${tk.map(k=>`<tr><td>${esc(k)}</td><td style="text-align:right;"><b>${perTahap[k]}</b> kodi</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Belum ada batch berjalan</div>';
+}
+
+// ===== BATCH =====
+window.setBatchTab = t => { batchTab=t; document.querySelectorAll('#batch-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.st===t)); loadBatchList(); };
+async function loadBatchList(){
+  const snap = await getDocs(collection(db,'batch'));
+  let batches = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.tanggal_mulai||'').localeCompare(a.tanggal_mulai||''));
+  if(batchTab!=='semua') batches=batches.filter(b=>b.status===batchTab);
+  const wipSnap = await getDocs(collection(db,'wip'));
+  const wips = wipSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const el=$('batch-list');
+  if(!batches.length){ el.innerHTML='<div class="empty"><div class="ico">🧵</div>Belum ada batch</div>'; return; }
+  el.innerHTML = batches.map(b=>{
+    const bw = wips.filter(w=>w.batch_id===b.id && (w.jumlah_kodi||0)>0);
+    const wipKodi = bw.reduce((s,w)=>s+(w.jumlah_kodi||0),0);
+    const statusBadge = b.status==='berjalan'?'<span class="badge badge-blue">Berjalan</span>': b.status==='selesai'?'<span class="badge badge-green">Selesai</span>':'<span class="badge badge-gray">Batal</span>';
+    const grp = bw.sort((a,b)=>a.urutan-b.urutan).map(w=>`<div class="chip">${esc(w.nama_tahap)} • ${esc(w.warna_nama||'-')} <b>${w.jumlah_kodi}</b></div>`).join('');
+    return `<div class="card">
+      <div class="card-title"><span>${esc(b.kode)} <span class="muted" style="font-weight:500;font-size:12px;">${esc(golNama(b.golongan))} · ${esc(b.tipe_nama||'')}</span></span>${statusBadge}</div>
+      <div class="muted" style="font-size:12.5px;margin-bottom:8px;">Mulai ${esc(b.tanggal_mulai||'-')} · Total ${b.total_kodi} kodi · Selesai ${b.total_selesai||0} kodi · WIP ${wipKodi} kodi</div>
+      <div class="row-flex" style="margin-bottom:10px;">${grp||'<span class="muted" style="font-size:12px;">Tidak ada WIP aktif</span>'}</div>
+      <div class="row-flex">
+        ${b.status==='berjalan'?`<button class="btn btn-outline btn-sm" onclick="openLogModal('${b.id}')">+ Catat Hasil</button>`:''}
+        ${b.status==='berjalan'&&(b.total_selesai||0)>0?`<button class="btn btn-outline btn-sm" onclick="openGrosirModal('${b.id}')">→ Kirim ke Grosir</button>`:''}
+        ${b.status==='berjalan'?`<button class="btn btn-outline btn-sm" onclick="finishBatch('${b.id}')">Tandai Selesai</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.openBatchModal = () => {
+  if(!M.golongan.length){ toast('Isi data awal dulu di Master Data','error'); return; }
+  const golOpts = M.golongan.map(g=>`<option value="${g.id}">${esc(g.nama)}</option>`).join('');
+  showModal('Buat Batch', `
+    <div class="form-group"><label class="form-label">Golongan</label><select class="form-control" id="bm-gol" onchange="bmGolChange()">${golOpts}</select></div>
+    <div class="form-group"><label class="form-label">Tipe Produk</label><select class="form-control" id="bm-tipe"></select></div>
+    <div class="form-group"><label class="form-label">Kode Batch</label><input class="form-control" id="bm-kode" placeholder="POM-2026-012" /></div>
+    <div class="form-group"><label class="form-label">Tanggal Mulai</label><input type="date" class="form-control" id="bm-tgl" value="${todayStr()}" /></div>
+    <label class="form-label">Rincian Kodi per Warna</label>
+    <div id="bm-warna-rows"></div>
+    <button class="btn btn-outline btn-sm" type="button" onclick="bmAddWarnaRow()" style="margin-top:6px;">+ Warna</button>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="bm-save" onclick="saveBatch()">Simpan</button>`);
+  bmGolChange(); bmAddWarnaRow();
+};
+window.bmGolChange = () => {
+  const gol=$('bm-gol').value;
+  $('bm-tipe').innerHTML = M.tipe.filter(t=>t.golongan===gol).map(t=>`<option value="${t.id}">${esc(t.nama)}</option>`).join('') || '<option value="">(belum ada tipe)</option>';
+  // refresh existing warna selects
+  document.querySelectorAll('.bm-warna-sel').forEach(sel=>{ const v=sel.value; sel.innerHTML=warnaOptsFor(gol); sel.value=v; });
+};
+function warnaOptsFor(gol){ return M.warna.filter(w=>w.golongan===gol).map(w=>`<option value="${w.id}">${esc(w.nama)}</option>`).join(''); }
+window.bmAddWarnaRow = () => {
+  const gol=$('bm-gol').value; const div=document.createElement('div'); div.className='row-flex'; div.style.marginBottom='6px';
+  div.innerHTML = `<select class="form-control bm-warna-sel" style="flex:1;">${warnaOptsFor(gol)}</select>
+    <input type="number" class="form-control kodi-input bm-warna-kodi" placeholder="kodi" min="1" />
+    <button class="btn btn-outline btn-sm" type="button" onclick="this.parentElement.remove()">✕</button>`;
+  $('bm-warna-rows').appendChild(div);
+};
+window.saveBatch = async () => {
+  const gol=$('bm-gol').value, tipeId=$('bm-tipe').value, kode=$('bm-kode').value.trim(), tgl=$('bm-tgl').value;
+  if(!kode){ toast('Isi kode batch','error'); return; }
+  const rows=[...document.querySelectorAll('#bm-warna-rows .row-flex')].map(r=>({ warnaId:r.querySelector('.bm-warna-sel').value, kodi:parseInt(r.querySelector('.bm-warna-kodi').value)||0 })).filter(r=>r.warnaId&&r.kodi>0);
+  if(!rows.length){ toast('Tambah minimal 1 warna + kodi','error'); return; }
+  const tipe=M.tipe.find(t=>t.id===tipeId);
+  const total = rows.reduce((s,r)=>s+r.kodi,0);
+  $('bm-save').disabled=true;
+  try {
+    const batchRef = await addDoc(collection(db,'batch'), { kode, golongan:gol, tipe_produk_id:tipeId, tipe_nama:tipe?.nama||'', tanggal_mulai:tgl, total_kodi:total, total_selesai:0, status:'berjalan', created_at:serverTimestamp() });
+    const wb = writeBatch(db);
+    for(const r of rows){
+      const w=warnaById(r.warnaId); const cab=cabangFor(gol, w?.nama);
+      const fs=firstStep(gol, cab);
+      if(!fs){ toast('Alur belum lengkap utk '+golNama(gol)+(cab?(' cab '+cab):''),'error'); $('bm-save').disabled=false; return; }
+      const wref=doc(collection(db,'wip'));
+      wb.set(wref, { batch_id:batchRef.id, batch_kode:kode, golongan:gol, cabang:cab, warna_id:r.warnaId, warna_nama:w?.nama||'', urutan:fs.urutan, nama_tahap:fs.nama_tahap, jenis_pekerjaan:fs.jenis_pekerjaan, butuh_warna:!!fs.butuh_warna, jumlah_kodi:r.kodi, tanggal_masuk_tahap:tgl });
+      wb.set(doc(collection(db,'batch_warna')), { batch_id:batchRef.id, warna_id:r.warnaId, warna_nama:w?.nama||'', jumlah_kodi:r.kodi });
+    }
+    await wb.commit();
+    toast('Batch '+kode+' dibuat ✅','success'); closeHostModal(); loadBatchList();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('bm-save').disabled=false; }
+};
+window.finishBatch = async (id) => {
+  if(!confirm('Tandai batch ini selesai? WIP yang tersisa akan dianggap rampung.')) return;
+  await updateDoc(doc(db,'batch',id), { status:'selesai', selesai_at:serverTimestamp() });
+  toast('Batch ditandai selesai','success'); loadBatchList();
+};
+
+// ===== LOG KERJA (PAPAN TULIS) =====
+window.openLogModal = async (preBatch) => {
+  if(!M.pekerja.length){ toast('Belum ada pekerja. Isi data awal dulu.','error'); return; }
+  const bsnap = await getDocs(query(collection(db,'batch'), where('status','==','berjalan')));
+  const batches = bsnap.docs.map(d=>({id:d.id,...d.data()}));
+  if(!batches.length){ toast('Belum ada batch berjalan','error'); return; }
+  const pekOpts = M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
+  const batchOpts = batches.map(b=>`<option value="${b.id}" ${b.id===preBatch?'selected':''}>${esc(b.kode)} (${esc(golNama(b.golongan))})</option>`).join('');
+  showModal('Catat Hasil Kerja', `
+    <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="lg-tgl" value="${$('papan-date').value||todayStr()}" /></div>
+    <div class="form-group"><label class="form-label">Pekerja</label><select class="form-control" id="lg-pekerja">${pekOpts}</select></div>
+    <div class="form-group"><label class="form-label">Batch</label><select class="form-control" id="lg-batch" onchange="lgBatchChange()">${batchOpts}</select></div>
+    <div class="form-group"><label class="form-label">Grup WIP / Tahap</label><select class="form-control" id="lg-wip" onchange="lgWipChange()"></select></div>
+    <div id="lg-warna-wrap" class="form-group hidden"><label class="form-label">Warna (dipilih saat tahap ini)</label><select class="form-control" id="lg-warna"></select></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Peran hari ini</label><input class="form-control" id="lg-peran" /></div>
+      <div class="form-group"><label class="form-label">Jumlah Kodi</label><input type="number" step="0.5" min="0.5" class="form-control" id="lg-kodi" /></div>
+    </div>
+    <div class="muted" id="lg-flow" style="font-size:12px;"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="lg-save" onclick="saveLog()">Simpan & Pindah Tahap</button>`);
+  window._logBatches = batches;
+  await lgBatchChange();
+};
+window.lgBatchChange = async () => {
+  const bid=$('lg-batch').value;
+  const wsnap = await getDocs(query(collection(db,'wip'), where('batch_id','==',bid)));
+  window._logWips = wsnap.docs.map(d=>({id:d.id,...d.data()})).filter(w=>(w.jumlah_kodi||0)>0).sort((a,b)=>a.urutan-b.urutan);
+  $('lg-wip').innerHTML = window._logWips.length ? window._logWips.map(w=>`<option value="${w.id}">${esc(w.nama_tahap)} • ${esc(w.warna_nama||'-')} (${w.jumlah_kodi} kodi)</option>`).join('') : '<option value="">(tidak ada WIP)</option>';
+  lgWipChange();
+};
+window.lgWipChange = () => {
+  const w = (window._logWips||[]).find(x=>x.id===$('lg-wip').value);
+  if(!w){ $('lg-flow').textContent=''; return; }
+  $('lg-peran').value = w.jenis_pekerjaan;
+  $('lg-kodi').value = w.jumlah_kodi;
+  $('lg-kodi').max = w.jumlah_kodi;
+  // warna picker
+  const wrap=$('lg-warna-wrap');
+  if(w.butuh_warna){ wrap.classList.remove('hidden'); $('lg-warna').innerHTML=warnaOptsFor(w.golongan); $('lg-warna').value=w.warna_id; }
+  else wrap.classList.add('hidden');
+  // flow preview
+  const ns = nextStep(w.golongan, w.cabang, w.warna_nama, w.urutan);
+  $('lg-flow').innerHTML = `Setelah disimpan: <b>${esc(w.nama_tahap)}</b> → ${ns?('<b>'+esc(ns.nama_tahap)+'</b>'):'<span class="badge badge-green">SELESAI ✔</span>'}`;
+};
+window.saveLog = async () => {
+  const w = (window._logWips||[]).find(x=>x.id===$('lg-wip').value);
+  if(!w){ toast('Pilih grup WIP','error'); return; }
+  const pekId=$('lg-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
+  const tgl=$('lg-tgl').value, peran=$('lg-peran').value.trim()||w.jenis_pekerjaan;
+  const kodi=parseFloat($('lg-kodi').value)||0;
+  if(kodi<=0){ toast('Isi jumlah kodi','error'); return; }
+  if(kodi> (w.jumlah_kodi||0)+0.001){ toast('Kodi melebihi yang tersedia ('+w.jumlah_kodi+')','error'); return; }
+  const warnaId = w.butuh_warna ? $('lg-warna').value : w.warna_id;
+  const warnaNama = warnaById(warnaId)?.nama || w.warna_nama;
+  const cab = cabangFor(w.golongan, warnaNama); // recompute (warna may have been chosen now)
+  $('lg-save').disabled=true;
+  try {
+    const wb = writeBatch(db);
+    // 1) reduce / remove source wip
+    const remain = (w.jumlah_kodi||0) - kodi;
+    if(remain <= 0.001) wb.delete(doc(db,'wip',w.id));
+    else wb.update(doc(db,'wip',w.id), { jumlah_kodi: remain });
+    // 2) next step
+    const ns = nextStep(w.golongan, cab, warnaNama, w.urutan);
+    if(ns){
+      // merge into existing dest wip of same batch/urutan/warna if exists
+      const dest = (window._logWips||[]).find(x=>x.id!==w.id && x.urutan===ns.urutan && x.warna_id===warnaId);
+      if(dest) wb.update(doc(db,'wip',dest.id), { jumlah_kodi:(dest.jumlah_kodi||0)+kodi, tanggal_masuk_tahap:tgl });
+      else wb.set(doc(collection(db,'wip')), { batch_id:w.batch_id, batch_kode:w.batch_kode, golongan:w.golongan, cabang:cab, warna_id:warnaId, warna_nama:warnaNama, urutan:ns.urutan, nama_tahap:ns.nama_tahap, jenis_pekerjaan:ns.jenis_pekerjaan, butuh_warna:!!ns.butuh_warna, jumlah_kodi:kodi, tanggal_masuk_tahap:tgl });
+    } else {
+      // selesai
+      wb.update(doc(db,'batch',w.batch_id), { total_selesai: increment(kodi) });
+    }
+    // 3) log
+    wb.set(doc(collection(db,'log_kerja')), { tanggal:tgl, bulan:tgl.slice(0,7), pekerja_id:pekId, pekerja_nama:pek?.nama||'', batch_id:w.batch_id, batch_kode:w.batch_kode, golongan:w.golongan, alur_urutan:w.urutan, nama_tahap:w.nama_tahap, jenis_pekerjaan:peran, warna_id:warnaId, warna_nama:warnaNama, jumlah_kodi:kodi, created_by:currentUser.uid, created_at:serverTimestamp() });
+    await wb.commit();
+    // 4) deduct bahan if obat
+    if(w.jenis_pekerjaan==='obat') await deductBahan(w.golongan, warnaId, w.nama_tahap, kodi);
+    toast('Tercatat: '+kodi+' kodi '+w.nama_tahap+' ✅','success');
+    closeHostModal();
+    if($('page-papan').classList.contains('active')) loadPapan();
+    if($('page-batch').classList.contains('active')) loadBatchList();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('lg-save').disabled=false; }
+};
+
+async function deductBahan(golId, warnaId, namaTahap, kodi){
+  const rcp = M.racikan.find(r=>r.golongan===golId && r.warna_id===warnaId && (r.komponen||[]).length);
+  if(!rcp) return;
+  try {
+    const wb=writeBatch(db); let any=false;
+    for(const k of rcp.komponen){
+      if(!k.bahan_id||!k.jumlah_gram) continue;
+      wb.update(doc(db,'bahan_baku',k.bahan_id), { stok: increment(-(k.jumlah_gram*kodi)) }); any=true;
+    }
+    if(any){ await wb.commit(); await loadAllMaster(); }
+  } catch(e){ /* bahan optional */ }
+}
+
+async function loadPapan(){
+  const tgl=$('papan-date').value||todayStr();
+  const snap = await getDocs(query(collection(db,'log_kerja'), where('tanggal','==',tgl)));
+  const logs = snap.docs.map(d=>({id:d.id,...d.data()}));
+  const el=$('papan-list');
+  if(!logs.length){ el.innerHTML='<div class="empty"><div class="ico">📋</div>Belum ada hasil dicatat untuk tanggal ini</div>'; return; }
+  // group by pekerja
+  const byPek={}; logs.forEach(l=>{ (byPek[l.pekerja_nama]=byPek[l.pekerja_nama]||[]).push(l); });
+  const totalAll = logs.reduce((s,l)=>s+(l.jumlah_kodi||0),0);
+  el.innerHTML = `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">Total hari ini: <b>${totalAll} kodi</b> dari ${logs.length} entri</div>` +
+   Object.keys(byPek).map(nm=>{
+    const rows=byPek[nm]; const tot=rows.reduce((s,l)=>s+(l.jumlah_kodi||0),0);
+    return `<div class="card" style="box-shadow:none;border:1px solid var(--border);">
+      <div class="card-title"><span>👷 ${esc(nm)}</span><span class="badge badge-blue">${tot} kodi</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Batch</th><th>Tahap</th><th>Peran</th><th>Warna</th><th>Kodi</th><th></th></tr></thead><tbody>${
+        rows.map(l=>`<tr><td>${esc(l.batch_kode||'-')}</td><td>${esc(l.nama_tahap)}</td><td><span class="badge badge-gray">${esc(l.jenis_pekerjaan)}</span></td><td>${esc(l.warna_nama||'-')}</td><td><b>${l.jumlah_kodi}</b></td><td><button class="btn btn-danger btn-sm" onclick="delLog('${l.id}')" title="Hapus entri (tidak mengembalikan WIP)">✕</button></td></tr>`).join('')
+      }</tbody></table></div></div>`;
+  }).join('');
+}
+window.delLog = async (id) => { if(!confirm('Hapus entri log ini? (posisi WIP tidak otomatis dikembalikan)')) return; await deleteDoc(doc(db,'log_kerja',id)); toast('Entri dihapus'); loadPapan(); };
+
+// ===== HASIL PEKERJA =====
+async function loadPekerjaRekap(){
+  const from=$('rekap-from').value, to=$('rekap-to').value;
+  if(!from||!to) return;
+  const snap = await getDocs(query(collection(db,'log_kerja'), where('tanggal','>=',from), where('tanggal','<=',to)));
+  const logs = snap.docs.map(d=>d.data());
+  const byPek={}; logs.forEach(l=>{ const k=l.pekerja_id||l.pekerja_nama; (byPek[k]=byPek[k]||{nama:l.pekerja_nama,total:0,dates:{}}); byPek[k].total+=l.jumlah_kodi||0; byPek[k].dates[l.tanggal]=(byPek[k].dates[l.tanggal]||0)+(l.jumlah_kodi||0); });
+  const days = Math.max(1, Math.round((new Date(to)-new Date(from))/86400000)+1);
+  // include all pekerja, even with 0
+  M.pekerja.forEach(p=>{ if(!byPek[p.id]) byPek[p.id]={nama:p.nama,total:0,dates:{}}; });
+  const rows = Object.keys(byPek).map(k=>{ const r=byPek[k]; const pek=M.pekerja.find(p=>p.id===k||p.nama===r.nama); return {...r, pek}; }).sort((a,b)=>b.total-a.total);
+  $('pekerja-rekap-list').innerHTML = `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">${from} → ${to} (${days} hari)</div><div class="table-wrap"><table><thead><tr><th>Pekerja</th><th>Total Kodi</th><th>Rata/hari</th><th>Target</th><th>Status</th></tr></thead><tbody>${
+    rows.map(r=>{
+      const avg=(r.total/days);
+      const tgt=r.pek?.target_kodi; const wajib=r.pek?.target_wajib;
+      let status='<span class="muted">—</span>';
+      if(tgt&&wajib){ status = avg>=tgt? '<span class="badge badge-green">Tercapai</span>' : '<span class="badge badge-red">Kurang</span>'; }
+      return `<tr><td><b>${esc(r.nama)}</b> ${r.pek?.peran_utama?`<span class="muted" style="font-size:11px;">${esc(r.pek.peran_utama)}</span>`:''}</td><td><b>${r.total}</b></td><td>${avg.toFixed(1)}</td><td>${tgt?tgt+' kodi':'-'}</td><td>${status}</td></tr>`;
+    }).join('')
+  }</tbody></table></div>`;
+}
+
+// ===== BAHAN =====
+async function loadBahan(){
+  await loadAllMaster();
+  const el=$('bahan-list');
+  if(!M.bahan.length){ el.innerHTML='<div class="empty"><div class="ico">🧪</div>Belum ada bahan</div>'; return; }
+  const bahan=[...M.bahan].sort((a,b)=>a.nama.localeCompare(b.nama));
+  el.innerHTML = `<table><thead><tr><th>Bahan</th><th>Stok</th><th>Min</th><th>Status</th><th></th></tr></thead><tbody>${
+    bahan.map(b=>{
+      const low=(b.stok||0)<=(b.stok_minimum||0)&&(b.stok_minimum||0)>0;
+      return `<tr><td><b>${esc(b.nama)}</b></td><td>${(b.stok||0).toLocaleString('id-ID')} ${esc(b.satuan||'')}</td><td>${(b.stok_minimum||0).toLocaleString('id-ID')}</td><td>${low?'<span class="badge badge-red">Menipis</span>':'<span class="badge badge-green">Aman</span>'}</td><td><button class="btn btn-outline btn-sm" onclick="openBeliModal('${b.id}')">+ Stok</button></td></tr>`;
+    }).join('')
+  }</tbody></table>`;
+}
+window.openBahanModal = () => {
+  showModal('Tambah Bahan', `
+    <div class="form-group"><label class="form-label">Nama Bahan</label><input class="form-control" id="bh-nama" /></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Satuan</label><input class="form-control" id="bh-satuan" value="gram" /></div>
+      <div class="form-group"><label class="form-label">Stok Awal</label><input type="number" class="form-control" id="bh-stok" value="0" /></div>
+    </div>
+    <div class="form-group"><label class="form-label">Stok Minimum (alert)</label><input type="number" class="form-control" id="bh-min" value="0" /></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveBahan()">Simpan</button>`);
+};
+window.saveBahan = async () => {
+  const nama=$('bh-nama').value.trim(); if(!nama){ toast('Isi nama','error'); return; }
+  await addDoc(collection(db,'bahan_baku'), { nama, satuan:$('bh-satuan').value.trim()||'gram', stok:parseFloat($('bh-stok').value)||0, stok_minimum:parseFloat($('bh-min').value)||0 });
+  toast('Bahan ditambah','success'); closeHostModal(); loadBahan();
+};
+window.openBeliModal = (preId) => {
+  const opts=M.bahan.map(b=>`<option value="${b.id}" ${b.id===preId?'selected':''}>${esc(b.nama)} (stok ${(b.stok||0)})</option>`).join('');
+  showModal('Tambah Stok / Pembelian', `
+    <div class="form-group"><label class="form-label">Bahan</label><select class="form-control" id="bl-bahan">${opts}</select></div>
+    <div class="form-group"><label class="form-label">Jumlah Ditambah</label><input type="number" class="form-control" id="bl-jml" /></div>
+    <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="bl-cat" placeholder="pembelian, opname, dll" /></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveBeli()">Tambah</button>`);
+};
+window.saveBeli = async () => {
+  const id=$('bl-bahan').value, jml=parseFloat($('bl-jml').value)||0;
+  if(!id||jml===0){ toast('Isi jumlah','error'); return; }
+  await updateDoc(doc(db,'bahan_baku',id), { stok: increment(jml) });
+  await addDoc(collection(db,'bahan_log'), { bahan_id:id, jumlah:jml, jenis:'masuk', catatan:$('bl-cat').value.trim(), tanggal:todayStr(), created_at:serverTimestamp() });
+  toast('Stok ditambah','success'); closeHostModal(); loadBahan();
+};
+
+// ===== HPP =====
+function loadHpp(){
+  const c = M.config || {};
+  const f = c.hpp_tetap || {kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900};
+  $('hpp-config').innerHTML = `<div class="table-wrap"><table><tbody>
+    <tr><td>Kain (mori)</td><td style="text-align:right">${rp(f.kain)}</td></tr>
+    <tr><td>Ngecap</td><td style="text-align:right">${rp(f.ngecap)}</td></tr>
+    <tr><td>Batik</td><td style="text-align:right">${rp(f.batik)}</td></tr>
+    <tr><td>Tenaga Obat</td><td style="text-align:right">${rp(f.obat_tk)}</td></tr>
+    <tr><td>Lainnya (lilin, solda, dll)</td><td style="text-align:right">${rp(f.lainnya)}</td></tr>
+    <tr style="font-weight:800"><td>Subtotal Tetap</td><td style="text-align:right">${rp(f.kain+f.ngecap+f.batik+f.obat_tk+f.lainnya)}</td></tr>
+  </tbody></table></div>`;
+  const tetap = f.kain+f.ngecap+f.batik+f.obat_tk+f.lainnya;
+  const biaya = (c.biaya_obat_warna)||{};
+  const poman = M.warna.filter(w=>w.golongan==='poman');
+  $('hpp-table').innerHTML = poman.length ? `<table><thead><tr><th>Warna</th><th>Obat/Kodi</th><th>HPP/Kodi</th><th>≈ /Lembar</th></tr></thead><tbody>${
+    poman.map(w=>{ const ob=biaya[w.nama]||0; const hpp=tetap+ob; return `<tr><td><b>${esc(w.nama)}</b></td><td style="text-align:right">${rp(ob)}</td><td style="text-align:right"><b>${rp(hpp)}</b></td><td style="text-align:right">${rp(hpp/20)}</td></tr>`; }).join('')
+  }</tbody></table>` : '<div class="empty">Isi data awal dulu</div>';
+}
+window.openHppConfigModal = () => {
+  const f = M.config?.hpp_tetap || {kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900};
+  showModal('Ubah Komponen Biaya Tetap', `
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Kain</label><input type="number" class="form-control" id="hc-kain" value="${f.kain}"></div>
+      <div class="form-group"><label class="form-label">Ngecap</label><input type="number" class="form-control" id="hc-ngecap" value="${f.ngecap}"></div>
+      <div class="form-group"><label class="form-label">Batik</label><input type="number" class="form-control" id="hc-batik" value="${f.batik}"></div>
+      <div class="form-group"><label class="form-label">Tenaga Obat</label><input type="number" class="form-control" id="hc-obat" value="${f.obat_tk}"></div>
+      <div class="form-group"><label class="form-label">Lainnya</label><input type="number" class="form-control" id="hc-lain" value="${f.lainnya}"></div>
+    </div>`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveHppConfig()">Simpan</button>`);
+};
+window.saveHppConfig = async () => {
+  const hpp_tetap = { kain:+$('hc-kain').value||0, ngecap:+$('hc-ngecap').value||0, batik:+$('hc-batik').value||0, obat_tk:+$('hc-obat').value||0, lainnya:+$('hc-lain').value||0 };
+  await setDoc(doc(db,'config_produksi','hpp'), { ...(M.config||{}), hpp_tetap }, {merge:true});
+  M.config = {...(M.config||{}), hpp_tetap};
+  toast('Tersimpan','success'); closeHostModal(); loadHpp();
+};
+
+// ===== GROSIR INTEGRATION =====
+window.openGrosirModal = async (batchId) => {
+  const b = (await getDoc(doc(db,'batch',batchId))).data();
+  const psnap = await getDocs(query(collection(db,'produk'), where('aktif','==',true)));
+  const produk = psnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nama.localeCompare(b.nama));
+  const opts = produk.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
+  showModal('Kirim ke Stok Grosir', `
+    <p class="muted" style="font-size:13px;margin-bottom:12px;">Batch <b>${esc(b.kode)}</b> punya <b>${b.total_selesai||0} kodi</b> selesai. Pilih produk Grosir tujuan dan jumlah kodi yang masuk ke stok rumah.</p>
+    <div class="form-group"><label class="form-label">Produk Grosir</label><select class="form-control" id="gr-produk">${opts||'<option value="">(belum ada produk grosir)</option>'}</select></div>
+    <div class="form-group"><label class="form-label">Jumlah Kodi Masuk</label><input type="number" step="0.5" class="form-control" id="gr-kodi" value="${b.total_selesai||0}"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="gr-save" onclick="saveGrosir('${batchId}')">Kirim</button>`);
+};
+window.saveGrosir = async (batchId) => {
+  const pid=$('gr-produk').value, kodi=parseFloat($('gr-kodi').value)||0;
+  if(!pid||kodi<=0){ toast('Pilih produk & jumlah','error'); return; }
+  $('gr-save').disabled=true;
+  try {
+    const stokRef=doc(db,'stok',pid); const stokDoc=await getDoc(stokRef);
+    const before = stokDoc.exists()? (stokDoc.data().stok_rumah||0) : 0;
+    const p = (await getDoc(doc(db,'produk',pid))).data();
+    const wb=writeBatch(db);
+    wb.set(stokRef, { stok_rumah: before+kodi, updated_at:serverTimestamp() }, {merge:true});
+    wb.set(doc(collection(db,'stok_log')), { produk_id:pid, produk_nama:p?.nama||'', jenis:'produksi_masuk', jumlah_kodi:kodi, jumlah_input:kodi, satuan_input:'kodi', stok_rumah_sebelum:before, stok_rumah_sesudah:before+kodi, referensi_id:batchId, catatan:'Hasil produksi batch', created_by:currentUser.uid, created_by_nama:currentUserData?.nama||'-', created_at:serverTimestamp() });
+    wb.update(doc(db,'batch',batchId), { total_selesai: increment(-kodi), dikirim_grosir: increment(kodi) });
+    await wb.commit();
+    toast(kodi+' kodi masuk stok Grosir ✅','success'); closeHostModal(); loadBatchList();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('gr-save').disabled=false; }
+};
+
+// ===== MASTER DATA RENDER =====
+window.setMasterTab = t => { masterTab=t; document.querySelectorAll('#master-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.m===t)); renderMaster(); };
+function renderMaster(){
+  $('seed-card').style.display = M.golongan.length? 'none':'block';
+  const el=$('master-content');
+  if(masterTab==='golongan') el.innerHTML = renderGolongan();
+  else if(masterTab==='warna') el.innerHTML = renderWarna();
+  else if(masterTab==='alur') el.innerHTML = renderAlur();
+  else if(masterTab==='pekerja') el.innerHTML = renderPekerja();
+  else if(masterTab==='racikan') el.innerHTML = renderRacikan();
+  else if(masterTab==='ambang') el.innerHTML = renderAmbang();
+}
+function renderGolongan(){
+  return `<div class="card"><div class="card-title">Golongan & Tipe <button class="btn btn-outline btn-sm" onclick="openTipeModal()">+ Tipe</button></div>` +
+    M.golongan.map(g=>`<div style="margin-bottom:10px;"><b>${esc(g.nama)}</b><div class="row-flex" style="margin-top:6px;">${M.tipe.filter(t=>t.golongan===g.id).map(t=>`<span class="chip">${esc(t.nama)} <span style="cursor:pointer;color:var(--red-text);" onclick="delDoc('tipe_produk','${t.id}')">✕</span></span>`).join('')||'<span class="muted" style="font-size:12px;">belum ada tipe</span>'}</div></div>`).join('') + `</div>`;
+}
+window.openTipeModal = () => {
+  showModal('Tambah Tipe', `<div class="form-group"><label class="form-label">Golongan</label><select class="form-control" id="tp-gol">${M.golongan.map(g=>`<option value="${g.id}">${esc(g.nama)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Nama Tipe</label><input class="form-control" id="tp-nama" placeholder="Tapih / Sarung / Slendang"></div>`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveTipe()">Simpan</button>`);
+};
+window.saveTipe = async () => { const nama=$('tp-nama').value.trim(); if(!nama) return toast('Isi nama','error'); await addDoc(collection(db,'tipe_produk'),{golongan:$('tp-gol').value,nama,panjang_mori:null}); await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal(); };
+
+function renderWarna(){
+  return M.golongan.map(g=>`<div class="card"><div class="card-title"><span>${esc(g.nama)}</span><button class="btn btn-outline btn-sm" onclick="openWarnaModal('${g.id}')">+ Warna</button></div><div class="row-flex">${M.warna.filter(w=>w.golongan===g.id).map(w=>`<span class="chip">${esc(w.nama)} <span style="cursor:pointer;color:var(--red-text);" onclick="delDoc('warna','${w.id}')">✕</span></span>`).join('')||'<span class="muted" style="font-size:12px;">belum ada</span>'}</div></div>`).join('');
+}
+window.openWarnaModal = (gol) => { showModal('Tambah Warna', `<div class="form-group"><label class="form-label">Warna</label><input class="form-control" id="wn-nama"></div>`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveWarna('${gol}')">Simpan</button>`); };
+window.saveWarna = async (gol) => { const nama=$('wn-nama').value.trim(); if(!nama) return toast('Isi warna','error'); await addDoc(collection(db,'warna'),{golongan:gol,nama}); await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal(); };
+
+function renderAlur(){
+  return M.golongan.map(g=>{
+    const cabs = g.id==='poman'? ['A','B'] : [null];
+    return `<div class="card"><div class="card-title"><span>${esc(g.nama)}</span><button class="btn btn-outline btn-sm" onclick="openAlurModal('${g.id}')">+ Tahap</button></div>` +
+      cabs.map(cab=>{
+        const steps=alurSteps(g.id,cab);
+        if(!steps.length && cab===null && g.id!=='poman') {}
+        return `<div style="margin-bottom:8px;">${cab?`<div class="muted" style="font-size:12px;font-weight:700;">Cabang ${cab} ${cab==='A'?'(selain putih/coklat)':'(putih/coklat)'}</div>`:''}
+          <div class="stage-flow" style="margin-top:4px;">${steps.map(s=>`<span class="stage-pill">${s.urutan}. ${esc(s.nama_tahap)} <span class="muted">[${esc(s.jenis_pekerjaan)}${s.butuh_warna?' • warna':''}${s.only_warna?' • '+s.only_warna.join('/'):''}]</span> <span style="cursor:pointer;color:var(--red-text);" onclick="delDoc('alur','${s.id}')">✕</span></span>`).join(' → ')||'<span class="muted" style="font-size:12px;">belum ada alur</span>'}</div></div>`;
+      }).join('') + `</div>`;
+  }).join('');
+}
+window.openAlurModal = (gol) => {
+  const cabSel = gol==='poman'? `<div class="form-group"><label class="form-label">Cabang</label><select class="form-control" id="al-cab"><option value="A">A (selain putih/coklat)</option><option value="B">B (putih/coklat)</option></select></div>`:'<input type="hidden" id="al-cab" value="">';
+  showModal('Tambah Tahap Alur', `${cabSel}
+    <div class="grid-2"><div class="form-group"><label class="form-label">Urutan</label><input type="number" class="form-control" id="al-urut" value="1"></div>
+    <div class="form-group"><label class="form-label">Jenis</label><select class="form-control" id="al-jenis"><option>cap</option><option>obat</option><option>lorod</option><option>jemur</option><option>batik</option></select></div></div>
+    <div class="form-group"><label class="form-label">Nama Tahap</label><input class="form-control" id="al-nama" placeholder="Pengobatan / Lorod / ..."></div>
+    <div class="form-group"><label style="font-size:13px;"><input type="checkbox" id="al-warna"> Butuh pilih warna (bironan/PT/PL)</label></div>
+    <div class="form-group"><label class="form-label">Hanya warna tertentu (opsional, pisah koma)</label><input class="form-control" id="al-only" placeholder="Coklat"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveAlur('${gol}')">Simpan</button>`);
+};
+window.saveAlur = async (gol) => {
+  const nama=$('al-nama').value.trim(); if(!nama) return toast('Isi nama tahap','error');
+  const only=$('al-only').value.trim();
+  const d={ golongan:gol, cabang: $('al-cab').value||null, urutan:parseInt($('al-urut').value)||1, nama_tahap:nama, jenis_pekerjaan:$('al-jenis').value, butuh_warna:$('al-warna').checked };
+  if(only) d.only_warna = only.split(',').map(s=>s.trim()).filter(Boolean);
+  await addDoc(collection(db,'alur'), d); await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal();
+};
+
+function renderPekerja(){
+  return `<div class="card"><div class="card-title">Pekerja <button class="btn btn-outline btn-sm" onclick="openPekerjaModal()">+ Pekerja</button></div><div class="table-wrap"><table><thead><tr><th>Nama</th><th>Peran</th><th>Upah</th><th>Target</th><th></th></tr></thead><tbody>${
+    M.pekerja.map(p=>`<tr><td><b>${esc(p.nama)}</b>${p.catatan?`<div class="muted" style="font-size:11px;">${esc(p.catatan)}</div>`:''}</td><td>${esc(p.peran_utama||'-')}</td><td>${esc(p.tipe_upah||'-')}</td><td>${p.target_kodi?p.target_kodi+' kodi'+(p.target_wajib?' (wajib)':''):'-'}</td><td><button class="btn btn-danger btn-sm" onclick="delDoc('pekerja','${p.id}')">✕</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">belum ada</td></tr>'
+  }</tbody></table></div></div>`;
+}
+window.openPekerjaModal = () => {
+  showModal('Tambah Pekerja', `
+    <div class="form-group"><label class="form-label">Nama</label><input class="form-control" id="pk-nama"></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Peran Utama</label><input class="form-control" id="pk-peran" placeholder="pengobat/pengecap/..."></div>
+      <div class="form-group"><label class="form-label">Tipe Upah</label><select class="form-control" id="pk-upah"><option>harian</option><option>borongan</option></select></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Target Kodi/hari</label><input type="number" class="form-control" id="pk-target" placeholder="kosong jika tidak ada"></div>
+      <div class="form-group"><label style="font-size:13px;display:block;margin-top:28px;"><input type="checkbox" id="pk-wajib"> Target wajib</label></div>
+    </div>
+    <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="pk-cat"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="savePekerja()">Simpan</button>`);
+};
+window.savePekerja = async () => {
+  const nama=$('pk-nama').value.trim(); if(!nama) return toast('Isi nama','error');
+  const t=parseInt($('pk-target').value)||null;
+  await addDoc(collection(db,'pekerja'), { nama, peran_utama:$('pk-peran').value.trim(), tipe_upah:$('pk-upah').value, target_kodi:t, target_wajib:$('pk-wajib').checked, catatan:$('pk-cat').value.trim() });
+  await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal();
+};
+
+function renderRacikan(){
+  const biaya = M.config?.biaya_obat_warna || {};
+  const poman = M.warna.filter(w=>w.golongan==='poman');
+  return `<div class="card"><div class="card-title">Biaya Obat per Kodi (Poman) <button class="btn btn-outline btn-sm" onclick="openBiayaObatModal()">Ubah</button></div>
+    <div class="table-wrap"><table><tbody>${poman.map(w=>`<tr><td>${esc(w.nama)}</td><td style="text-align:right">${rp(biaya[w.nama]||0)}</td></tr>`).join('')||'<tr><td class="muted">isi data awal dulu</td></tr>'}</tbody></table></div></div>
+    <div class="card"><div class="card-title">Racikan Bahan (untuk potong stok otomatis) <button class="btn btn-outline btn-sm" onclick="openRacikanModal()">+ Racikan</button></div>
+    ${M.racikan.length? `<div class="table-wrap"><table><thead><tr><th>Golongan</th><th>Warna</th><th>Komponen</th><th></th></tr></thead><tbody>${M.racikan.map(r=>`<tr><td>${esc(golNama(r.golongan))}</td><td>${esc(warnaById(r.warna_id)?.nama||'-')}</td><td>${(r.komponen||[]).map(k=>esc((M.bahan.find(b=>b.id===k.bahan_id)||{}).nama||'?')+' '+k.jumlah_gram+'g').join(', ')}</td><td><button class="btn btn-danger btn-sm" onclick="delDoc('racikan_obat','${r.id}')">✕</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="muted" style="font-size:12.5px;">Opsional — isi jika ingin potong stok bahan otomatis saat pengobatan dicatat.</div>'}</div>`;
+}
+window.openBiayaObatModal = () => {
+  const biaya=M.config?.biaya_obat_warna||{}; const poman=M.warna.filter(w=>w.golongan==='poman');
+  showModal('Biaya Obat per Kodi', poman.map(w=>`<div class="form-group"><label class="form-label">${esc(w.nama)}</label><input type="number" class="form-control bo-inp" data-w="${esc(w.nama)}" value="${biaya[w.nama]||0}"></div>`).join(''), `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveBiayaObat()">Simpan</button>`);
+};
+window.saveBiayaObat = async () => {
+  const biaya={}; document.querySelectorAll('.bo-inp').forEach(i=>biaya[i.dataset.w]=+i.value||0);
+  await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), biaya_obat_warna:biaya}, {merge:true});
+  M.config={...(M.config||{}), biaya_obat_warna:biaya}; toast('Tersimpan','success'); closeHostModal(); renderMaster();
+};
+window.openRacikanModal = () => {
+  const golOpts=M.golongan.map(g=>`<option value="${g.id}">${esc(g.nama)}</option>`).join('');
+  showModal('Tambah Racikan', `
+    <div class="grid-2"><div class="form-group"><label class="form-label">Golongan</label><select class="form-control" id="rc-gol" onchange="rcGolChange()">${golOpts}</select></div>
+    <div class="form-group"><label class="form-label">Warna</label><select class="form-control" id="rc-warna"></select></div></div>
+    <label class="form-label">Komponen Bahan</label><div id="rc-rows"></div>
+    <button class="btn btn-outline btn-sm" type="button" onclick="rcAddRow()" style="margin-top:6px;">+ Bahan</button>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveRacikan()">Simpan</button>`);
+  rcGolChange(); rcAddRow();
+};
+window.rcGolChange = () => { const g=$('rc-gol').value; $('rc-warna').innerHTML=warnaOptsFor(g); };
+window.rcAddRow = () => { const d=document.createElement('div'); d.className='row-flex'; d.style.marginBottom='6px'; d.innerHTML=`<select class="form-control rc-bahan" style="flex:1;">${M.bahan.map(b=>`<option value="${b.id}">${esc(b.nama)}</option>`).join('')}</select><input type="number" class="form-control rc-gram" placeholder="gram" style="width:100px;"><button class="btn btn-outline btn-sm" type="button" onclick="this.parentElement.remove()">✕</button>`; $('rc-rows').appendChild(d); };
+window.saveRacikan = async () => {
+  const komponen=[...document.querySelectorAll('#rc-rows .row-flex')].map(r=>({bahan_id:r.querySelector('.rc-bahan').value, jumlah_gram:+r.querySelector('.rc-gram').value||0})).filter(k=>k.jumlah_gram>0);
+  if(!komponen.length) return toast('Tambah komponen','error');
+  await addDoc(collection(db,'racikan_obat'), { golongan:$('rc-gol').value, warna_id:$('rc-warna').value, tahap_warna:'akhir', komponen });
+  await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal();
+};
+
+function renderAmbang(){
+  const a=M.config?.ambang||{cap:2,obat:3,batik:4,lorod:3,jemur:2};
+  return `<div class="card"><div class="card-title">Ambang "Mengendap" (hari) <button class="btn btn-outline btn-sm" onclick="openAmbangModal()">Ubah</button></div>
+    <div class="table-wrap"><table><tbody>${Object.keys(a).map(k=>`<tr><td>${esc(k)}</td><td style="text-align:right"><b>${a[k]}</b> hari</td></tr>`).join('')}</tbody></table></div>
+    <div class="muted" style="font-size:12px;margin-top:8px;">Grup kodi yang berada di satu tahap melebihi ambang akan ditandai merah di dashboard.</div></div>`;
+}
+window.openAmbangModal = () => {
+  const a=M.config?.ambang||{cap:2,obat:3,batik:4,lorod:3,jemur:2};
+  showModal('Ubah Ambang Mengendap', ['cap','obat','batik','lorod','jemur'].map(k=>`<div class="form-group"><label class="form-label">${k} (hari)</label><input type="number" class="form-control am-inp" data-k="${k}" value="${a[k]??3}"></div>`).join(''), `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveAmbang()">Simpan</button>`);
+};
+window.saveAmbang = async () => {
+  const ambang={}; document.querySelectorAll('.am-inp').forEach(i=>ambang[i.dataset.k]=+i.value||0);
+  await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), ambang}, {merge:true});
+  M.config={...(M.config||{}), ambang}; toast('Tersimpan','success'); closeHostModal(); renderMaster();
+};
+
+window.delDoc = async (col,id) => { if(!confirm('Hapus data ini?')) return; await deleteDoc(doc(db,col,id)); await loadAllMaster(); renderMaster(); toast('Dihapus'); };
+
+// ===== SEED =====
+window.seedAll = async () => {
+  if(M.golongan.length){ if(!confirm('Data golongan sudah ada. Tetap isi data awal? (bisa menduplikasi)')) return; }
+  $('btn-seed').disabled=true; $('btn-seed').textContent='Mengisi…';
+  try {
+    const GOL=[{id:'poman',nama:'Poman/Kelir'},{id:'trusmian',nama:'Trusmian'},{id:'lebar',nama:'Lebar'}];
+    for(const g of GOL) await setDoc(doc(db,'golongan',g.id), {nama:g.nama});
+    const TIPE={ poman:['Tapih','Sarung','Slendang'], trusmian:['Tapih','Sarung'], lebar:['Tapih','Sarung'] };
+    for(const g in TIPE) for(const t of TIPE[g]) await addDoc(collection(db,'tipe_produk'), {golongan:g,nama:t,panjang_mori:null});
+    const WARNA={ poman:['Kuning','Biru','Merah','Putih','Coklat','Hijau','Hijau Gadung'], lebar:['Biru','Merah','Violet','Kuning','Hijau'] };
+    const warnaIdMap={};
+    for(const g in WARNA) for(const w of WARNA[g]){ const r=await addDoc(collection(db,'warna'), {golongan:g,nama:w}); warnaIdMap[g+'|'+w]=r.id; }
+    // ALUR
+    const ALUR=[
+      // POMAN A
+      {g:'poman',c:'A',u:1,n:'Pengecapan',j:'cap'},{g:'poman',c:'A',u:2,n:'Pengobatan dasar',j:'obat'},{g:'poman',c:'A',u:3,n:'Lorod',j:'lorod'},{g:'poman',c:'A',u:4,n:'Jemur',j:'jemur'},{g:'poman',c:'A',u:5,n:'Pembatikan (bironan)',j:'batik'},{g:'poman',c:'A',u:6,n:'Pengobatan warna',j:'obat',w:true},{g:'poman',c:'A',u:7,n:'Lorod',j:'lorod'},{g:'poman',c:'A',u:8,n:'Jemur',j:'jemur'},
+      // POMAN B
+      {g:'poman',c:'B',u:1,n:'Pengecapan',j:'cap'},{g:'poman',c:'B',u:2,n:'Pengobatan dasar',j:'obat'},{g:'poman',c:'B',u:3,n:'Jemur',j:'jemur'},{g:'poman',c:'B',u:4,n:'Pembatikan (tutuban)',j:'batik'},{g:'poman',c:'B',u:5,n:'Pengobatan tutuban',j:'obat'},{g:'poman',c:'B',u:6,n:'Lorod',j:'lorod'},{g:'poman',c:'B',u:7,n:'Pengobatan akhir coklat',j:'obat',only:['Coklat']},{g:'poman',c:'B',u:8,n:'Jemur',j:'jemur'},
+      // TRUSMIAN
+      {g:'trusmian',c:null,u:1,n:'Cap pinggir (minggiri)',j:'cap'},{g:'trusmian',c:null,u:2,n:'Pengobatan warna',j:'obat',w:true},{g:'trusmian',c:null,u:3,n:'Cap tengah (nengai)',j:'cap'},{g:'trusmian',c:null,u:4,n:'Pengobatan tutuban',j:'obat'},{g:'trusmian',c:null,u:5,n:'Jemur',j:'jemur'},{g:'trusmian',c:null,u:6,n:'Pembatikan',j:'batik'},{g:'trusmian',c:null,u:7,n:'Pengobatan warna',j:'obat',w:true},{g:'trusmian',c:null,u:8,n:'Lorod',j:'lorod'},{g:'trusmian',c:null,u:9,n:'Jemur',j:'jemur'},
+      // LEBAR
+      {g:'lebar',c:null,u:1,n:'Pengecapan',j:'cap'},{g:'lebar',c:null,u:2,n:'Pengobatan',j:'obat',w:true},{g:'lebar',c:null,u:3,n:'Pembatikan',j:'batik'},{g:'lebar',c:null,u:4,n:'Pengobatan tutuban',j:'obat'},{g:'lebar',c:null,u:5,n:'Lorod',j:'lorod'},{g:'lebar',c:null,u:6,n:'Jemur',j:'jemur'}
+    ];
+    for(const a of ALUR){ const d={golongan:a.g,cabang:a.c,urutan:a.u,nama_tahap:a.n,jenis_pekerjaan:a.j,butuh_warna:!!a.w}; if(a.only)d.only_warna=a.only; await addDoc(collection(db,'alur'),d); }
+    // PEKERJA
+    const PEK=[
+      {nama:'Julan',peran_utama:'pengobat',tipe_upah:'harian',target_kodi:5,target_wajib:true,catatan:''},
+      {nama:'Fijae',peran_utama:'pengobat',tipe_upah:'harian',target_kodi:5,target_wajib:true,catatan:''},
+      {nama:'Johan',peran_utama:'pengobat/lorod',tipe_upah:'harian',target_kodi:null,target_wajib:false,catatan:'Juga bikin lilin (~3 kodi)'},
+      {nama:'Hendra',peran_utama:'pengobat/jemur',tipe_upah:'harian',target_kodi:null,target_wajib:false,catatan:''},
+      {nama:'Arin',peran_utama:'penjemur',tipe_upah:'harian',target_kodi:null,target_wajib:false,catatan:'Juga di pasar'},
+      {nama:'Pengecap 1',peran_utama:'pengecap',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''},
+      {nama:'Pengecap 2',peran_utama:'pengecap',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''},
+      {nama:'Pengecap 3',peran_utama:'pengecap',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''},
+      {nama:'Pembatik 1',peran_utama:'pembatik',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''},
+      {nama:'Pembatik 2',peran_utama:'pembatik',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''},
+      {nama:'Pembatik 3',peran_utama:'pembatik',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''},
+      {nama:'Pembatik 4',peran_utama:'pembatik',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''},
+      {nama:'Pembatik 5',peran_utama:'pembatik',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''}
+    ];
+    for(const p of PEK) await addDoc(collection(db,'pekerja'), p);
+    // BAHAN
+    const BAHAN=['Merah B mtk jpn','Garam biru mtk jpn','R mtk jpn','OL I','ASG I','ASD I','BB','ASC I','Sol hijau ny','Sol coklat ny','BS I','BO 80 D','66 29%','Kustik','Nitrit','GG','Garam item','Kaporit','Mori/Primatex','Lilin','Solda','Plastik','Minyak'];
+    for(const b of BAHAN) await addDoc(collection(db,'bahan_baku'), {nama:b,satuan:'gram',stok:0,stok_minimum:0});
+    // CONFIG
+    await setDoc(doc(db,'config_produksi','hpp'), {
+      hpp_tetap:{kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900},
+      biaya_obat_warna:{'Hijau Gadung':83310,'Hijau':75180,'Kuning':64360,'Coklat':73705,'Biru':50690,'Merah':64040,'Putih':56905},
+      ambang:{cap:2,obat:3,batik:4,lorod:3,jemur:2}
+    });
+    await loadAllMaster();
+    toast('Data awal terisi ✅','success');
+    renderMaster();
+  } catch(e){ toast('Gagal seed: '+e.message,'error'); }
+  $('btn-seed').disabled=false; $('btn-seed').textContent='Isi Data Awal';
+};
+</script>
+</body>
+</html>
