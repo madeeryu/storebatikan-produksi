@@ -578,6 +578,7 @@ async function loadBatchList(){
       <div class="muted" style="font-size:12.5px;margin-bottom:8px;">Mulai ${esc(b.tanggal_mulai||'-')} · Target ${b.total_kodi||0} kodi · Selesai ${(+selesai.toFixed(1))} kodi</div>
       <div class="row-flex" style="margin-bottom:10px;">${cells||'<span class="muted" style="font-size:12px;">belum ada stok berjalan</span>'}</div>
       <div class="row-flex">
+        ${b.status!=='selesai'?`<button class="btn btn-primary btn-sm" onclick="openStokModal('${b.id}')">✏️ Atur Stok</button>`:''}
         ${selesai>0?`<button class="btn btn-outline btn-sm" onclick="openGrosirModal('${b.id}')">→ Kirim ke Grosir</button>`:''}
         ${b.status!=='selesai'?`<button class="btn btn-outline btn-sm" onclick="finishBatch('${b.id}')">Tandai Selesai</button>`:''}
         <button class="btn btn-danger btn-sm" onclick="delBatch('${b.id}')">Hapus</button>
@@ -617,6 +618,21 @@ window.delBatch = async (id) => {
   const snap=await getDocs(query(collection(db,'stok_proses'), where('batch_id','==',id)));
   const wb=writeBatch(db); snap.docs.forEach(d=>wb.delete(d.ref)); wb.delete(doc(db,'batch',id));
   await wb.commit(); toast('Batch dihapus'); loadBatchList();
+};
+window.openStokModal = async (batchId) => {
+  const [bDoc, stokMap] = await Promise.all([ getDoc(doc(db,'batch',batchId)), loadStokAll() ]);
+  const b=bDoc.data();
+  const rows=POOLS.map(p=>{ const v=getStok(stokMap,batchId,p.id); return `<div class="row-flex" style="align-items:center;margin-bottom:7px;"><div style="flex:1;font-size:13px;font-weight:600;">${esc(p.label)}</div><input type="number" step="0.5" class="form-control st-inp" data-pool="${p.id}" value="${(+v.toFixed(2))||0}" style="width:120px;"></div>`; }).join('');
+  showModal('Atur Stok — '+b.kode, `<p class="muted" style="font-size:12.5px;margin-bottom:12px;">Isi posisi stok saat ini (kodi) untuk batch yang sudah berjalan. Nilai ini <b>menimpa</b> (set langsung) stok tiap kolam.</p>${rows}`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="st-save" onclick="saveStokManual('${batchId}')">Simpan</button>`);
+};
+window.saveStokManual = async (batchId) => {
+  $('st-save').disabled=true;
+  try {
+    const wb=writeBatch(db);
+    document.querySelectorAll('.st-inp').forEach(i=>{ const pool=i.dataset.pool; const val=num(i.value);
+      wb.set(doc(db,'stok_proses',stokId(batchId,pool)), { batch_id:batchId, pool, jumlah_kodi:val, updated_at:serverTimestamp() }, {merge:true}); });
+    await wb.commit(); toast('Stok diperbarui ✅','success'); closeHostModal(); loadBatchList();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('st-save').disabled=false; }
 };
 
 // ===== GROSIR =====
@@ -806,7 +822,7 @@ window.openWarnaModal = (gol) => showModal('Tambah Warna', `<div class="form-gro
 window.saveWarna = async (gol) => { const nama=$('wn-nama').value.trim(); if(!nama) return toast('Isi warna','error'); await addDoc(collection(db,'warna'),{golongan:gol,nama}); await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal(); };
 function renderPekerja(){
   return `<div class="card"><div class="card-title">Pekerja <button class="btn btn-outline btn-sm" onclick="openPekerjaModal()">+ Pekerja</button></div><div class="table-wrap"><table><thead><tr><th>Nama</th><th>Peran</th><th>Upah</th><th>Target</th><th></th></tr></thead><tbody>${
-    M.pekerja.map(p=>`<tr><td><b>${esc(p.nama)}</b>${p.catatan?`<div class="muted" style="font-size:11px;">${esc(p.catatan)}</div>`:''}</td><td>${esc(p.peran_utama||'-')}</td><td>${esc(p.tipe_upah||'-')}</td><td>${p.target_kodi?p.target_kodi+' kodi'+(p.target_wajib?' (wajib)':''):'-'}</td><td><button class="btn btn-danger btn-sm" onclick="delDoc('pekerja','${p.id}')">✕</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">belum ada</td></tr>'
+    M.pekerja.map(p=>`<tr><td><b>${esc(p.nama)}</b>${p.catatan?`<div class="muted" style="font-size:11px;">${esc(p.catatan)}</div>`:''}</td><td>${esc(p.peran_utama||'-')}</td><td>${esc(p.tipe_upah||'-')}</td><td>${p.target_kodi?p.target_kodi+' kodi'+(p.target_wajib?' (wajib)':''):'-'}</td><td style="white-space:nowrap;"><button class="btn btn-outline btn-sm" onclick="openEditPekerja('${p.id}')">✏️</button> <button class="btn btn-danger btn-sm" onclick="delDoc('pekerja','${p.id}')">✕</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">belum ada</td></tr>'
   }</tbody></table></div></div>`;
 }
 window.openPekerjaModal = () => showModal('Tambah Pekerja', `
@@ -819,6 +835,20 @@ window.openPekerjaModal = () => showModal('Tambah Pekerja', `
 `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="savePekerja()">Simpan</button>`);
 window.savePekerja = async () => { const nama=$('pk-nama').value.trim(); if(!nama) return toast('Isi nama','error');
   await addDoc(collection(db,'pekerja'), { nama, peran_utama:$('pk-peran').value.trim(), tipe_upah:$('pk-upah').value, target_kodi:num($('pk-target').value)||null, target_wajib:$('pk-wajib').checked, catatan:$('pk-cat').value.trim() });
+  await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal();
+};
+window.openEditPekerja = (id) => { const p=M.pekerja.find(x=>x.id===id); if(!p) return;
+  showModal('Edit Pekerja', `
+    <div class="form-group"><label class="form-label">Nama</label><input class="form-control" id="pe-nama" value="${esc(p.nama)}"></div>
+    <div class="grid-2"><div class="form-group"><label class="form-label">Peran Utama</label><input class="form-control" id="pe-peran" value="${esc(p.peran_utama||'')}"></div>
+    <div class="form-group"><label class="form-label">Tipe Upah</label><select class="form-control" id="pe-upah"><option ${p.tipe_upah==='harian'?'selected':''}>harian</option><option ${p.tipe_upah==='borongan'?'selected':''}>borongan</option></select></div></div>
+    <div class="grid-2"><div class="form-group"><label class="form-label">Target Kodi/hari</label><input type="number" step="0.5" class="form-control" id="pe-target" value="${p.target_kodi||''}" placeholder="kosong jika tdk ada"></div>
+    <div class="form-group"><label style="font-size:13px;display:block;margin-top:28px;"><input type="checkbox" id="pe-wajib" ${p.target_wajib?'checked':''}> Target wajib</label></div></div>
+    <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="pe-cat" value="${esc(p.catatan||'')}"></div>
+  `, `<button class="btn btn-danger" onclick="delDoc('pekerja','${id}')">Hapus</button><button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveEditPekerja('${id}')">Simpan</button>`);
+};
+window.saveEditPekerja = async (id) => { const nama=$('pe-nama').value.trim(); if(!nama) return toast('Isi nama','error');
+  await updateDoc(doc(db,'pekerja',id), { nama, peran_utama:$('pe-peran').value.trim(), tipe_upah:$('pe-upah').value, target_kodi:num($('pe-target').value)||null, target_wajib:$('pe-wajib').checked, catatan:$('pe-cat').value.trim() });
   await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal();
 };
 function renderBiaya(){
