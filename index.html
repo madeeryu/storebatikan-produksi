@@ -227,9 +227,10 @@
 
     <!-- HPP -->
     <div class="page" id="page-hpp">
-      <div class="page-header"><div class="page-title">💰 HPP per Kodi</div><div class="page-subtitle">Harga pokok produksi per warna</div></div>
-      <div class="card"><div class="card-title">Komponen Biaya Tetap <button class="btn btn-outline btn-sm" onclick="openHppConfigModal()">Ubah</button></div><div id="hpp-config"></div></div>
-      <div class="card"><div class="card-title">HPP per Warna (Poman)</div><div class="table-wrap"><div id="hpp-table"></div></div></div>
+      <div class="page-header"><div class="page-title">💰 HPP per Kodi</div><div class="page-subtitle">Per jenis (tipe) & warna — beda di panjang mori</div></div>
+      <div class="card"><div class="card-title">Komponen Biaya & Upah <button class="btn btn-outline btn-sm" onclick="openHppConfigModal()">Ubah</button></div><div id="hpp-config"></div></div>
+      <div class="card"><div class="card-title">Panjang Mori per Tipe (yard) <button class="btn btn-outline btn-sm" onclick="saveMori()">Simpan</button></div><div class="table-wrap"><div id="hpp-mori"></div></div></div>
+      <div class="card"><div class="card-title">HPP per Tipe & Warna</div><div class="table-wrap"><div id="hpp-table"></div></div></div>
     </div>
 
     <!-- MASTER -->
@@ -841,31 +842,81 @@ window.openRiwayatObat = (id) => { const b=M.bahan.find(x=>x.id===id); if(!b) re
 };
 window.delAmbil = async (pid,bid) => { if(!confirm('Hapus catatan pengambilan ini?')) return; await deleteDoc(doc(db,'pengambilan_obat',pid)); await loadBahan(); openRiwayatObat(bid); toast('Dihapus'); };
 
-// ===== HPP =====
+// ===== HPP (per tipe & warna) =====
+function _hppCfg(){ const c=M.config||{}; return {
+  hargaKain: c.harga_kain_per_yard ?? 12100,
+  obatTk: c.obat_tk ?? c.hpp_tetap?.obat_tk ?? 110000,
+  lainnya: c.lainnya ?? c.hpp_tetap?.lainnya ?? 130900,
+  ng: c.upah_ngecap_pcs || {poman:3000, lebar:2750, trusmian_minggiri:500, trusmian_nengai:3000},
+  bt: c.upah_batik_pcs || {bironan:1500, ttb:2000},
+  biaya: c.biaya_obat_warna || {}
+}; }
+function ngecapKodi(gol){ const {ng}=_hppCfg(); if(gol==='trusmian') return ((ng.trusmian_minggiri||0)+(ng.trusmian_nengai||0))*PCS_PER_KODI; return (ng[gol]||0)*PCS_PER_KODI; }
+function batikKodi(gol, warnaNama){ const {bt}=_hppCfg(); const ttb = gol==='poman' ? ['Putih','Coklat'].includes(warnaNama) : true; return (ttb?(bt.ttb||0):(bt.bironan||0))*PCS_PER_KODI; }
+function kainKodi(tipe){ return (tipe?.panjang_mori||0)*_hppCfg().hargaKain; }
+function hppKodi(gol, tipe, warnaNama){ const {obatTk,lainnya,biaya}=_hppCfg(); return kainKodi(tipe)+ngecapKodi(gol)+batikKodi(gol,warnaNama)+obatTk+lainnya+(biaya[warnaNama]||0); }
 function loadHpp(){
-  const c=M.config||{}; const f=c.hpp_tetap||{kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900};
+  const c=_hppCfg();
   $('hpp-config').innerHTML=`<div class="table-wrap"><table><tbody>
-    <tr><td>Kain (mori)</td><td style="text-align:right">${rp(f.kain)}</td></tr><tr><td>Ngecap</td><td style="text-align:right">${rp(f.ngecap)}</td></tr>
-    <tr><td>Batik</td><td style="text-align:right">${rp(f.batik)}</td></tr><tr><td>Tenaga Obat</td><td style="text-align:right">${rp(f.obat_tk)}</td></tr>
-    <tr><td>Lainnya</td><td style="text-align:right">${rp(f.lainnya)}</td></tr>
-    <tr style="font-weight:800"><td>Subtotal Tetap</td><td style="text-align:right">${rp(f.kain+f.ngecap+f.batik+f.obat_tk+f.lainnya)}</td></tr></tbody></table></div>`;
-  const tetap=f.kain+f.ngecap+f.batik+f.obat_tk+f.lainnya; const biaya=c.biaya_obat_warna||{};
-  const poman=M.warna.filter(w=>w.golongan==='poman');
-  $('hpp-table').innerHTML= poman.length? `<table><thead><tr><th>Warna</th><th>Obat/Kodi</th><th>HPP/Kodi</th><th>≈ /Lembar</th></tr></thead><tbody>${
-    poman.map(w=>{ const ob=biaya[w.nama]||0; const hpp=tetap+ob; return `<tr><td><b>${esc(w.nama)}</b></td><td style="text-align:right">${rp(ob)}</td><td style="text-align:right"><b>${rp(hpp)}</b></td><td style="text-align:right">${rp(hpp/20)}</td></tr>`; }).join('')
-  }</tbody></table>`:'<div class="empty">Isi data awal dulu</div>';
+    <tr><td>Harga kain / yard</td><td style="text-align:right">${rp(c.hargaKain)}</td></tr>
+    <tr><td>Tenaga Obat / kodi</td><td style="text-align:right">${rp(c.obatTk)}</td></tr>
+    <tr><td>Lainnya / kodi</td><td style="text-align:right">${rp(c.lainnya)}</td></tr>
+    <tr><td>Ngecap Poman /pcs</td><td style="text-align:right">${rp(c.ng.poman)}</td></tr>
+    <tr><td>Ngecap Lebar /pcs</td><td style="text-align:right">${rp(c.ng.lebar)}</td></tr>
+    <tr><td>Ngecap Trusmi /pcs</td><td style="text-align:right">minggiri ${rp(c.ng.trusmian_minggiri)} + nengai ${rp(c.ng.trusmian_nengai)}</td></tr>
+    <tr><td>Batik bironan /pcs</td><td style="text-align:right">${rp(c.bt.bironan)}</td></tr>
+    <tr><td>Batik tutuban /pcs</td><td style="text-align:right">${rp(c.bt.ttb)}</td></tr>
+  </tbody></table></div>`;
+  $('hpp-mori').innerHTML = M.tipe.length? `<table><thead><tr><th>Golongan</th><th>Tipe</th><th>Mori (yard)</th><th>Kain/kodi</th></tr></thead><tbody>${
+    M.tipe.map(t=>`<tr><td>${esc(golNama(t.golongan))}</td><td>${esc(t.nama)}</td><td><input type="number" step="0.1" class="form-control mori-inp" data-id="${t.id}" value="${t.panjang_mori||''}" style="width:110px;"></td><td>${rp((t.panjang_mori||0)*c.hargaKain)}</td></tr>`).join('')
+  }</tbody></table>` : '<div class="muted" style="font-size:13px;">Belum ada tipe.</div>';
+  let html='';
+  M.golongan.forEach(g=>{
+    const tipes=M.tipe.filter(t=>t.golongan===g.id); if(!tipes.length) return;
+    let warnas=M.warna.filter(w=>w.golongan===g.id); if(!warnas.length) warnas=[{nama:'(umum)'}];
+    html += `<div style="font-weight:800;margin:16px 0 4px;">${esc(g.nama)}</div>`;
+    tipes.forEach(t=>{
+      html += `<div class="muted" style="font-weight:700;font-size:12.5px;margin:10px 0 4px;">${esc(t.nama)} · mori ${t.panjang_mori||'-'} yd · kain ${rp(kainKodi(t))}/kodi · ngecap ${rp(ngecapKodi(g.id))}/kodi</div>
+        <table><thead><tr><th>Warna</th><th>Batik</th><th>Obat warna</th><th>HPP/kodi</th><th>≈ /pcs</th></tr></thead><tbody>${
+        warnas.map(w=>{ const hpp=hppKodi(g.id,t,w.nama); return `<tr><td>${esc(w.nama)}</td><td style="text-align:right">${rp(batikKodi(g.id,w.nama))}</td><td style="text-align:right">${rp(c.biaya[w.nama]||0)}</td><td style="text-align:right"><b>${rp(hpp)}</b></td><td style="text-align:right">${rp(hpp/PCS_PER_KODI)}</td></tr>`; }).join('')
+      }</tbody></table>`;
+    });
+  });
+  $('hpp-table').innerHTML = html || '<div class="empty">Isi data awal dulu</div>';
 }
-window.openHppConfigModal = () => { const f=M.config?.hpp_tetap||{kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900};
-  showModal('Ubah Biaya Tetap', `<div class="grid-2">
-    <div class="form-group"><label class="form-label">Kain</label><input type="number" class="form-control" id="hc-kain" value="${f.kain}"></div>
-    <div class="form-group"><label class="form-label">Ngecap</label><input type="number" class="form-control" id="hc-ngecap" value="${f.ngecap}"></div>
-    <div class="form-group"><label class="form-label">Batik</label><input type="number" class="form-control" id="hc-batik" value="${f.batik}"></div>
-    <div class="form-group"><label class="form-label">Tenaga Obat</label><input type="number" class="form-control" id="hc-obat" value="${f.obat_tk}"></div>
-    <div class="form-group"><label class="form-label">Lainnya</label><input type="number" class="form-control" id="hc-lain" value="${f.lainnya}"></div></div>
+window.saveMori = async () => {
+  const wb=writeBatch(db); let n=0;
+  document.querySelectorAll('.mori-inp').forEach(i=>{ wb.update(doc(db,'tipe_produk',i.dataset.id), {panjang_mori:num(i.value)||null}); n++; });
+  if(n){ await wb.commit(); await loadAllMaster(); } loadHpp(); toast('Panjang mori tersimpan','success');
+};
+window.openHppConfigModal = () => { const c=_hppCfg();
+  showModal('Ubah Biaya & Upah', `
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Harga kain / yard</label><input type="number" class="form-control" id="hc-kain" value="${c.hargaKain}"></div>
+      <div class="form-group"><label class="form-label">Tenaga Obat / kodi</label><input type="number" class="form-control" id="hc-obat" value="${c.obatTk}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Lainnya / kodi</label><input type="number" class="form-control" id="hc-lain" value="${c.lainnya}"></div>
+    <div style="font-weight:700;font-size:13px;margin:8px 0 4px;">Upah Ngecap (per pcs)</div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Poman</label><input type="number" class="form-control" id="hc-ng-poman" value="${c.ng.poman}"></div>
+      <div class="form-group"><label class="form-label">Lebar</label><input type="number" class="form-control" id="hc-ng-lebar" value="${c.ng.lebar}"></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Trusmi minggiri</label><input type="number" class="form-control" id="hc-ng-mng" value="${c.ng.trusmian_minggiri}"></div>
+      <div class="form-group"><label class="form-label">Trusmi nengai</label><input type="number" class="form-control" id="hc-ng-ng" value="${c.ng.trusmian_nengai}"></div>
+    </div>
+    <div style="font-weight:700;font-size:13px;margin:8px 0 4px;">Upah Batik (per pcs)</div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Bironan</label><input type="number" class="form-control" id="hc-bt-bir" value="${c.bt.bironan}"></div>
+      <div class="form-group"><label class="form-label">Tutuban</label><input type="number" class="form-control" id="hc-bt-ttb" value="${c.bt.ttb}"></div>
+    </div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveHppConfig()">Simpan</button>`);
 };
-window.saveHppConfig = async () => { const hpp_tetap={ kain:num($('hc-kain').value), ngecap:num($('hc-ngecap').value), batik:num($('hc-batik').value), obat_tk:num($('hc-obat').value), lainnya:num($('hc-lain').value) };
-  await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), hpp_tetap}, {merge:true}); M.config={...(M.config||{}), hpp_tetap}; toast('Tersimpan','success'); closeHostModal(); loadHpp();
+window.saveHppConfig = async () => {
+  const patch = { harga_kain_per_yard:num($('hc-kain').value), obat_tk:num($('hc-obat').value), lainnya:num($('hc-lain').value),
+    upah_ngecap_pcs:{ poman:num($('hc-ng-poman').value), lebar:num($('hc-ng-lebar').value), trusmian_minggiri:num($('hc-ng-mng').value), trusmian_nengai:num($('hc-ng-ng').value) },
+    upah_batik_pcs:{ bironan:num($('hc-bt-bir').value), ttb:num($('hc-bt-ttb').value) } };
+  await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), ...patch}, {merge:true}); M.config={...(M.config||{}), ...patch}; toast('Tersimpan','success'); closeHostModal(); loadHpp();
 };
 
 // ===== MASTER =====
@@ -949,7 +1000,7 @@ window.seedAll = async () => {
     const GOL=[{id:'poman',nama:'Poman/Kelir'},{id:'trusmian',nama:'Trusmian'},{id:'lebar',nama:'Lebar'}];
     for(const g of GOL) await setDoc(doc(db,'golongan',g.id), {nama:g.nama});
     const TIPE={ poman:['Tapih','Sarung','Slendang'], trusmian:['Tapih','Sarung'], lebar:['Tapih','Sarung'] };
-    for(const g in TIPE) for(const t of TIPE[g]) await addDoc(collection(db,'tipe_produk'), {golongan:g,nama:t,panjang_mori:null});
+    for(const g in TIPE) for(const t of TIPE[g]) await addDoc(collection(db,'tipe_produk'), {golongan:g,nama:t,panjang_mori:4.9});
     const WARNA={ poman:['Kuning','Biru','Merah','Putih','Coklat','Hijau','Hijau Gadung'], lebar:['Biru','Merah','Violet','Kuning','Hijau'] };
     for(const g in WARNA) for(const w of WARNA[g]) await addDoc(collection(db,'warna'), {golongan:g,nama:w});
     const PEK=[
@@ -971,7 +1022,9 @@ window.seedAll = async () => {
     const BAHAN=['Merah B mtk jpn','Garam biru mtk jpn','R mtk jpn','OL I','ASG I','ASD I','BB','ASC I','Sol hijau ny','Sol coklat ny','BS I','BO 80 D','66 29%','Kustik','Nitrit','GG','Garam item','Kaporit','Mori/Primatex','Lilin','Solda','Plastik','Minyak'];
     for(const b of BAHAN) await addDoc(collection(db,'bahan_baku'), {nama:b,satuan:'',stok_lama:0,stok_baru:0,stok_minimum:0});
     await setDoc(doc(db,'config_produksi','hpp'), {
-      hpp_tetap:{kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900},
+      harga_kain_per_yard:12100, obat_tk:110000, lainnya:130900,
+      upah_ngecap_pcs:{poman:3000, lebar:2750, trusmian_minggiri:500, trusmian_nengai:3000},
+      upah_batik_pcs:{bironan:1500, ttb:2000},
       biaya_obat_warna:{'Hijau Gadung':83310,'Hijau':75180,'Kuning':64360,'Coklat':73705,'Biru':50690,'Merah':64040,'Putih':56905},
       ambang_pool:5
     });
