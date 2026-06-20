@@ -310,8 +310,10 @@ const GERAK_PRESET = [
   {id:'lorod_luar',   label:'Lorod → Jemuran luar',                  from:'lakar_lorod',   to:'jemuran_luar',    cat:'lorod', sesi:'sore'},
   {id:'jemur_dlm',    label:'Jemur dalam → Selesai',                 from:'jemuran_dalam', to:'selesai',         cat:'jemur', sesi:'sore'},
   {id:'jemur_luar',   label:'Jemur luar → Selesai',                  from:'jemuran_luar',  to:'selesai',         cat:'jemur', sesi:'sore'},
+  {id:'cap_nengai',   label:'Cap tengah/nengai (Trusmian) → Tutuban',from:'jemuran_dalam', to:'ttb',             cat:'cap',   sesi:'sore'},
   {id:'manual',       label:'Manual (pilih kolam sendiri)',          from:null,            to:null,              cat:'lain',  sesi:'sore'},
 ];
+const PCS_PER_KODI = 20; // 1 kodi = 20 pcs/lembar
 
 // ===== STATE =====
 let currentUser=null, currentUserData=null;
@@ -496,7 +498,7 @@ function renderGerakList(){
   const tot = rows.reduce((s,g)=>s+(g.jumlah_kodi||0),0);
   el.innerHTML = `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">${rows.length} gerak · total ${(+tot.toFixed(1))} kodi</div><div class="table-wrap"><table><thead><tr><th>Batch</th><th>Gerak</th><th>Warna</th><th>Pekerja</th><th>Kodi</th><th></th></tr></thead><tbody>${
     rows.map(g=>{ const isWip=POOLS.find(p=>p.id===g.to_pool)?.wip;
-      return `<tr><td><b>${esc(g.batch_kode||'-')}</b></td><td style="font-size:12.5px;">${esc(poolShort(g.from_pool)||'•')} <span class="flow-arrow">→</span> ${esc(poolShort(g.to_pool)||'•')}<div class="muted" style="font-size:10.5px;">${esc(g.jenis_label||'')}</div></td><td>${esc(g.warna_nama||'-')}</td><td>${esc(g.pekerja_nama||'-')}</td><td><b>${g.jumlah_kodi}</b></td><td style="white-space:nowrap;">${isWip?`<button class="btn btn-outline btn-sm" onclick="openSelesaiGerak('${g.id}')">✓ Selesai</button> `:''}<button class="btn btn-danger btn-sm" onclick="delGerak('${g.id}')">✕</button></td></tr>`;
+      return `<tr><td><b>${esc(g.batch_kode||'-')}</b></td><td style="font-size:12.5px;">${esc(poolShort(g.from_pool)||'•')} <span class="flow-arrow">→</span> ${esc(poolShort(g.to_pool)||'•')}<div class="muted" style="font-size:10.5px;">${esc(g.jenis_label||'')}</div></td><td>${esc(g.warna_nama||'-')}</td><td>${esc(g.pekerja_nama||'-')}</td><td><b>${(+(g.jumlah_kodi||0).toFixed(2))}</b>${g.input_satuan==='pcs'?`<div class="muted" style="font-size:10.5px;">${g.input_jumlah} pcs</div>`:''}</td><td style="white-space:nowrap;">${isWip?`<button class="btn btn-outline btn-sm" onclick="openSelesaiGerak('${g.id}')">✓ Selesai</button> `:''}<button class="btn btn-danger btn-sm" onclick="delGerak('${g.id}')">✕</button></td></tr>`;
     }).join('')
   }</tbody></table></div>`;
 }
@@ -519,7 +521,7 @@ window.openGerakModal = async () => {
     <div class="form-group" id="gk-warna-wrap"><label class="form-label">Warna (ditentukan saat ngobat, opsional)</label><select class="form-control" id="gk-warna"></select></div>
     <div class="grid-2">
       <div class="form-group"><label class="form-label">Pekerja</label><select class="form-control" id="gk-pekerja">${pekOpts}</select></div>
-      <div class="form-group"><label class="form-label">Jumlah Kodi</label><input type="number" step="0.5" min="0" class="form-control" id="gk-kodi"></div>
+      <div class="form-group"><label class="form-label">Jumlah</label><div class="row-flex" style="flex-wrap:nowrap;gap:6px;"><input type="number" step="0.5" min="0" class="form-control" id="gk-kodi" style="flex:1;"><select class="form-control" id="gk-unit" style="width:84px;"><option value="kodi">kodi</option><option value="pcs">pcs</option></select></div></div>
     </div>
     <div class="form-group"><label class="form-label">Sesi</label><select class="form-control" id="gk-sesi"><option value="pagi">🌅 Pagi</option><option value="sore" selected>🌇 Sore</option></select></div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="gk-save" onclick="saveGerak()">Simpan Gerak</button>`);
@@ -540,9 +542,10 @@ window.saveGerak = async () => {
   const preset=GERAK_PRESET.find(x=>x.id===$('gk-preset').value);
   const b=(window._gerakBatches||[]).find(x=>x.id===$('gk-batch').value);
   const from=$('gk-from').value||null, to=$('gk-to').value||null;
-  const kodi=num($('gk-kodi').value);
+  const unit=$('gk-unit').value, inputJml=num($('gk-kodi').value);
+  const kodi = unit==='pcs'? inputJml/PCS_PER_KODI : inputJml;
   if(!b){ toast('Pilih batch','error'); return; }
-  if(kodi<=0){ toast('Isi jumlah kodi','error'); return; }
+  if(kodi<=0){ toast('Isi jumlah','error'); return; }
   if(!from && !to){ toast('Pilih kolam asal/tujuan','error'); return; }
   const pekId=$('gk-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
   const warnaId=$('gk-warna').value, warna=warnaById(warnaId);
@@ -551,7 +554,7 @@ window.saveGerak = async () => {
   try {
     const wb=writeBatch(db);
     applyGerak(wb, b.id, from, to, kodi);
-    wb.set(doc(collection(db,'gerak')), { tanggal:tgl, sesi:$('gk-sesi').value, jenis_preset:preset.id, jenis_label:preset.label, cat:preset.cat, batch_id:b.id, batch_kode:b.kode, golongan:b.golongan, from_pool:from, to_pool:to, warna_id:warnaId||null, warna_nama:warna?.nama||'', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'', jumlah_kodi:kodi, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
+    wb.set(doc(collection(db,'gerak')), { tanggal:tgl, sesi:$('gk-sesi').value, jenis_preset:preset.id, jenis_label:preset.label, cat:preset.cat, batch_id:b.id, batch_kode:b.kode, golongan:b.golongan, from_pool:from, to_pool:to, warna_id:warnaId||null, warna_nama:warna?.nama||'', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'', jumlah_kodi:kodi, input_jumlah:inputJml, input_satuan:unit, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
     await wb.commit();
     toast('Gerak tercatat ✅','success'); closeHostModal(); loadHarian();
   } catch(e){ toast('Gagal: '+e.message,'error'); $('gk-save').disabled=false; }
@@ -575,22 +578,25 @@ window.openSelesaiGerak = async (gerakId) => {
   else if(wipPool==='pembatikan') toField=`<div class="form-group"><label class="form-label">Hasil batik</label><select class="form-control" id="sg-to"><option value="lakar_sdh_batik">Lakar sudah dibatik (bironan)</option><option value="ttb">Tutuban (TTB)</option></select></div>`;
   else toField=`<div class="form-group"><label class="form-label">Ke kolam</label><select class="form-control" id="sg-to">${POOLS.map(p=>`<option value="${p.id}">${esc(p.label)}</option>`).join('')}</select></div>`;
   showModal('Selesai — '+g.batch_kode, `
-    <p class="muted" style="font-size:12.5px;margin-bottom:10px;"><b>${esc(poolLabel(wipPool))}</b> di batch ini sekarang: <b>${(+cur.toFixed(1))} kodi</b>. Isi yang selesai hari ini — sisanya tetap di kolam untuk dilanjutkan besok.</p>
+    <p class="muted" style="font-size:12.5px;margin-bottom:10px;"><b>${esc(poolLabel(wipPool))}</b> di batch ini sekarang: <b>${(+cur.toFixed(1))} kodi</b> (= ${(+(cur*PCS_PER_KODI).toFixed(0))} pcs). Isi yang selesai hari ini — bisa kodi atau pcs (1 kodi = 20 pcs). Sisanya tetap di kolam untuk dilanjutkan besok.</p>
     <input type="hidden" id="sg-cur" value="${cur}">
     ${toField}
     <div class="grid-2">
-      <div class="form-group"><label class="form-label">Selesai (kodi)</label><input type="number" step="0.5" min="0" class="form-control" id="sg-kodi" value="${(+cur.toFixed(1))}" oninput="sgSisa()"></div>
-      <div class="form-group"><label class="form-label">Sisa besok</label><input class="form-control" id="sg-sisa" disabled></div>
+      <div class="form-group"><label class="form-label">Selesai</label><div class="row-flex" style="flex-wrap:nowrap;gap:6px;"><input type="number" step="0.5" min="0" class="form-control" id="sg-kodi" value="${(+cur.toFixed(1))}" oninput="sgSisa()" style="flex:1;"><select class="form-control" id="sg-unit" style="width:84px;" onchange="sgUnitChange()"><option value="kodi">kodi</option><option value="pcs">pcs</option></select></div></div>
+      <div class="form-group"><label class="form-label">Sisa besok (kodi)</label><input class="form-control" id="sg-sisa" disabled></div>
     </div>
     <div class="form-group"><label class="form-label">Pekerja (opsional)</label><select class="form-control" id="sg-pekerja"><option value="">—</option>${M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('')}</select></div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="sg-save" onclick="saveSelesaiGerak('${g.batch_id}','${esc(g.batch_kode||'')}','${g.golongan||''}','${wipPool}')">Simpan</button>`);
   sgSisa();
 };
-window.sgSisa = () => { const cur=num($('sg-cur').value), v=num($('sg-kodi').value); $('sg-sisa').value=(+Math.max(0,cur-v).toFixed(1)); };
+function sgKodi(){ const u=($('sg-unit')?.value)||'kodi', v=num($('sg-kodi').value); return u==='pcs'? v/PCS_PER_KODI : v; }
+window.sgSisa = () => { const cur=num($('sg-cur').value); $('sg-sisa').value=(+Math.max(0,cur-sgKodi()).toFixed(2)); };
+window.sgUnitChange = () => { const u=$('sg-unit').value, cur=num($('sg-cur').value); $('sg-kodi').value = u==='pcs'? (+(cur*PCS_PER_KODI).toFixed(0)) : (+cur.toFixed(1)); sgSisa(); };
 window.saveSelesaiGerak = async (batchId, batchKode, golongan, fromPool) => {
-  const to=$('sg-to').value, kodi=num($('sg-kodi').value), cur=num($('sg-cur').value);
+  const to=$('sg-to').value, cur=num($('sg-cur').value);
+  const unit=$('sg-unit').value, inputJml=num($('sg-kodi').value), kodi=sgKodi();
   if(kodi<=0){ toast('Isi jumlah selesai','error'); return; }
-  if(kodi>cur+0.001){ toast('Selesai melebihi stok di kolam ('+(+cur.toFixed(1))+')','error'); return; }
+  if(kodi>cur+0.001){ toast('Selesai melebihi stok di kolam ('+(+cur.toFixed(1))+' kodi)','error'); return; }
   const pekId=$('sg-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
   const cat = fromPool==='pengecapan'?'cap':(fromPool==='pembatikan'?'batik':'lain');
   const label = `${poolLabel(fromPool)} selesai → ${poolLabel(to)}`;
@@ -598,7 +604,7 @@ window.saveSelesaiGerak = async (batchId, batchKode, golongan, fromPool) => {
   try {
     const wb=writeBatch(db);
     applyGerak(wb, batchId, fromPool, to, kodi);
-    wb.set(doc(collection(db,'gerak')), { tanggal:$('hr-date').value||todayStr(), sesi:'sore', jenis_preset:'selesai', jenis_label:label, cat, batch_id:batchId, batch_kode:batchKode, golongan:golongan||null, from_pool:fromPool, to_pool:to, warna_id:null, warna_nama:'', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'', jumlah_kodi:kodi, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
+    wb.set(doc(collection(db,'gerak')), { tanggal:$('hr-date').value||todayStr(), sesi:'sore', jenis_preset:'selesai', jenis_label:label, cat, batch_id:batchId, batch_kode:batchKode, golongan:golongan||null, from_pool:fromPool, to_pool:to, warna_id:null, warna_nama:'', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'', jumlah_kodi:kodi, input_jumlah:inputJml, input_satuan:unit, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
     await wb.commit();
     toast('Selesai '+kodi+' kodi ✅','success'); closeHostModal(); loadHarian();
   } catch(e){ toast('Gagal: '+e.message,'error'); $('sg-save').disabled=false; }
