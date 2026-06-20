@@ -14,28 +14,15 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --primary: #4F46E5;
-      --primary-dark: #4338CA;
-      --primary-light: #EEF2FF;
-      --primary-text: #4F46E5;
-      --bg: #F5F6FA;
-      --white: #FFFFFF;
-      --border: #E8EAED;
-      --input-border: #DDE1E7;
-      --text-primary: #111827;
-      --text-secondary: #6B7280;
-      --text-muted: #9CA3AF;
-      --green-bg: #DCFCE7; --green-text: #16A34A;
-      --red-bg: #FEE2E2; --red-text: #DC2626;
-      --amber-bg: #FEF3C7; --amber-text: #D97706;
-      --blue-bg: #EFF6FF; --blue-text: #2563EB;
+      --primary: #4F46E5; --primary-dark: #4338CA; --primary-light: #EEF2FF;
+      --bg: #F5F6FA; --white: #FFFFFF; --border: #E8EAED; --input-border: #DDE1E7;
+      --text-primary: #111827; --text-secondary: #6B7280; --text-muted: #9CA3AF;
+      --green-bg: #DCFCE7; --green-text: #16A34A; --red-bg: #FEE2E2; --red-text: #DC2626;
+      --amber-bg: #FEF3C7; --amber-text: #D97706; --blue-bg: #EFF6FF; --blue-text: #2563EB;
       --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
-      --radius: 12px;
-      --sidebar-w: 240px;
+      --radius: 12px; --sidebar-w: 240px;
     }
     html, body { height: 100%; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); }
-
-    /* LOGIN */
     #login-page { display:none; min-height:100vh; align-items:center; justify-content:center; padding:20px; background:linear-gradient(135deg,#EEF2FF,#F5F6FA); }
     .login-card { background:var(--white); border-radius:18px; box-shadow:0 10px 40px rgba(0,0,0,.08); padding:32px 28px; width:100%; max-width:380px; }
     .login-logo { text-align:center; margin-bottom:20px; }
@@ -43,8 +30,6 @@
     .login-logo .tagline { font-size:12px; color:var(--text-muted); margin-top:4px; }
     .login-title { font-size:20px; font-weight:700; }
     .login-sub { font-size:13px; color:var(--text-secondary); margin-bottom:18px; }
-
-    /* LAYOUT */
     #app { display:flex; min-height:100vh; overflow-x:hidden; }
     #sidebar { width:var(--sidebar-w); min-height:100vh; background:var(--white); border-right:1px solid var(--border); position:fixed; top:0; left:0; display:flex; flex-direction:column; z-index:100; }
     @media (max-width:768px){
@@ -64,7 +49,6 @@
     .nav-item { display:flex; align-items:center; gap:10px; padding:10px 16px; margin:1px 8px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:500; color:var(--text-secondary); transition:all .15s; text-decoration:none; }
     .nav-item:hover { background:var(--bg); color:var(--text-primary); }
     .nav-item.active { background:var(--primary-light); color:var(--primary); font-weight:600; }
-    .nav-item .nav-icon { width:20px; height:20px; flex-shrink:0; }
     .sidebar-user { padding:16px; border-top:1px solid var(--border); display:flex; align-items:center; gap:10px; }
     .user-avatar { width:36px; height:36px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:white; flex-shrink:0; }
     .user-info { flex:1; min-width:0; }
@@ -72,130 +56,91 @@
     .user-role { font-size:11px; color:var(--text-muted); }
     .btn-logout { background:none; border:none; cursor:pointer; color:var(--text-muted); padding:4px; border-radius:6px; }
     .btn-logout:hover { color:var(--red-text); background:var(--red-bg); }
-
     #main-content { margin-left:var(--sidebar-w); flex:1; min-height:100vh; }
     #topbar-mobile { display:none; background:var(--primary); color:white; padding:12px 16px; align-items:center; gap:12px; position:sticky; top:0; z-index:90; }
     .topbar-title { font-size:16px; font-weight:700; flex:1; }
-
-    .page { display:none; padding:24px; max-width:1100px; margin:0 auto; }
+    .page { display:none; padding:24px; max-width:1150px; margin:0 auto; }
     .page.active { display:block; }
     .page-header { margin-bottom:20px; }
     .page-title { font-size:22px; font-weight:800; }
     .page-subtitle { font-size:13px; color:var(--text-secondary); margin-top:2px; }
-
-    /* COMPONENTS */
     .card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px; margin-bottom:16px; }
-    .card-title { font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; justify-content:space-between; }
+    .card-title { font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap; }
     .btn { display:inline-flex; align-items:center; gap:6px; padding:10px 16px; border-radius:9px; font-size:14px; font-weight:600; cursor:pointer; border:1px solid transparent; font-family:inherit; transition:all .12s; }
-    .btn-primary { background:var(--primary); color:white; }
-    .btn-primary:hover { background:var(--primary-dark); }
-    .btn-outline { background:var(--white); border-color:var(--input-border); color:var(--text-primary); }
-    .btn-outline:hover { border-color:var(--primary); color:var(--primary); }
+    .btn-primary { background:var(--primary); color:white; } .btn-primary:hover { background:var(--primary-dark); }
+    .btn-outline { background:var(--white); border-color:var(--input-border); color:var(--text-primary); } .btn-outline:hover { border-color:var(--primary); color:var(--primary); }
     .btn-sm { padding:6px 12px; font-size:12.5px; border-radius:7px; }
     .btn-danger { background:var(--red-bg); color:var(--red-text); }
     .btn:disabled { opacity:.55; cursor:not-allowed; }
     .w-full { width:100%; justify-content:center; }
-
     .form-group { margin-bottom:14px; }
-    .form-label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--text-primary); }
-    .form-control { width:100%; padding:11px 13px; border:1.5px solid var(--input-border); border-radius:9px; font-size:14px; font-family:inherit; background:var(--white); color:var(--text-primary); transition:border .12s; }
+    .form-label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+    .form-control { width:100%; padding:11px 13px; border:1.5px solid var(--input-border); border-radius:9px; font-size:14px; font-family:inherit; background:var(--white); color:var(--text-primary); }
     .form-control:focus { outline:none; border-color:var(--primary); }
     select.form-control { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236B7280' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:34px; }
     .error-msg { background:var(--red-bg); color:var(--red-text); padding:9px 12px; border-radius:8px; font-size:13px; margin-bottom:12px; display:none; }
-
-    .stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
-    .stat-card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; }
-    .stat-card .label { font-size:12px; color:var(--text-secondary); font-weight:500; }
-    .stat-card .value { font-size:24px; font-weight:800; margin-top:4px; }
-    .stat-card .sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
-
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; margin-bottom:16px; }
+    .stat-card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px; }
+    .stat-card .label { font-size:11.5px; color:var(--text-secondary); font-weight:600; }
+    .stat-card .value { font-size:22px; font-weight:800; margin-top:4px; }
+    .stat-card .sub { font-size:10.5px; color:var(--text-muted); margin-top:2px; }
     table { width:100%; border-collapse:collapse; font-size:13.5px; }
-    th { text-align:left; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; padding:8px 10px; border-bottom:2px solid var(--border); white-space:nowrap; }
-    td { padding:10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    th { text-align:left; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em; padding:8px 10px; border-bottom:2px solid var(--border); white-space:nowrap; }
+    td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
     tr:last-child td { border-bottom:none; }
     .table-wrap { overflow-x:auto; }
-
     .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; }
-    .badge-green { background:var(--green-bg); color:var(--green-text); }
-    .badge-red { background:var(--red-bg); color:var(--red-text); }
-    .badge-amber { background:var(--amber-bg); color:var(--amber-text); }
-    .badge-blue { background:var(--blue-bg); color:var(--blue-text); }
+    .badge-green { background:var(--green-bg); color:var(--green-text); } .badge-red { background:var(--red-bg); color:var(--red-text); }
+    .badge-amber { background:var(--amber-bg); color:var(--amber-text); } .badge-blue { background:var(--blue-bg); color:var(--blue-text); }
     .badge-gray { background:#F1F2F4; color:var(--text-secondary); }
-    .chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; font-size:12px; font-weight:600; background:var(--bg); border:1px solid var(--border); cursor:pointer; }
-    .chip.active { background:var(--primary-light); border-color:var(--primary); color:var(--primary); }
-
+    .chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; font-size:12px; font-weight:600; background:var(--bg); border:1px solid var(--border); }
     .empty { text-align:center; padding:40px 20px; color:var(--text-muted); }
     .empty .ico { font-size:38px; margin-bottom:8px; }
-
-    /* MODAL */
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(17,24,39,.5); z-index:500; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
     .modal-overlay.open { display:flex; }
     .modal { background:var(--white); border-radius:16px; width:100%; max-width:480px; margin:auto; box-shadow:0 20px 60px rgba(0,0,0,.25); }
     .modal-head { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
     .modal-head .title { font-size:17px; font-weight:700; }
     .modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-muted); line-height:1; }
-    .modal-body { padding:20px; }
-    .modal-foot { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
-
-    /* TOAST */
+    .modal-body { padding:20px; } .modal-foot { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
     #toast-wrap { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:900; display:flex; flex-direction:column; gap:8px; align-items:center; }
     .toast { background:#111827; color:white; padding:11px 18px; border-radius:10px; font-size:13.5px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.2); animation:toastIn .2s; max-width:90vw; }
     .toast.success { background:#16A34A; } .toast.error { background:#DC2626; }
     @keyframes toastIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
-
     .row-flex { display:flex; gap:10px; flex-wrap:wrap; }
     .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     @media (max-width:520px){ .grid-2{ grid-template-columns:1fr; } }
-    .muted { color:var(--text-muted); }
-    .hidden { display:none !important; }
+    .muted { color:var(--text-muted); } .hidden { display:none !important; }
     .pill-tab { display:flex; gap:6px; background:var(--bg); padding:4px; border-radius:10px; margin-bottom:14px; flex-wrap:wrap; }
     .pill-tab button { flex:1; min-width:80px; border:none; background:none; padding:8px 12px; border-radius:7px; font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; font-family:inherit; }
     .pill-tab button.active { background:var(--white); color:var(--primary); box-shadow:var(--shadow); }
-    .stage-flow { display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:11.5px; }
-    .stage-pill { padding:3px 8px; border-radius:6px; background:var(--bg); border:1px solid var(--border); white-space:nowrap; }
-    .stage-pill.done { background:var(--green-bg); color:var(--green-text); border-color:transparent; }
-    .stage-pill.current { background:var(--primary); color:white; border-color:transparent; }
-    .kodi-input { width:90px; text-align:center; }
+    .kodi-input { width:80px; text-align:center; }
+    .flow-arrow { color:var(--text-muted); font-weight:700; }
   </style>
 </head>
 <body>
 
-<!-- ==================== LOGIN ==================== -->
 <div id="login-page">
   <div class="login-card">
-    <div class="login-logo">
-      <div class="brand">🎨 Batik AN</div>
-      <div class="tagline">Monitoring Produksi</div>
-    </div>
+    <div class="login-logo"><div class="brand">🎨 Batik AN</div><div class="tagline">Monitoring Produksi</div></div>
     <div class="login-title">Selamat Datang</div>
     <div class="login-sub">Masuk untuk melanjutkan</div>
     <div class="error-msg" id="login-error"></div>
-    <div class="form-group">
-      <label class="form-label">Email</label>
-      <input type="email" id="login-email" class="form-control" placeholder="email@contoh.com" />
-    </div>
-    <div class="form-group">
-      <label class="form-label">Password</label>
-      <input type="password" id="login-password" class="form-control" placeholder="••••••••" />
-    </div>
+    <div class="form-group"><label class="form-label">Email</label><input type="email" id="login-email" class="form-control" placeholder="email@contoh.com" /></div>
+    <div class="form-group"><label class="form-label">Password</label><input type="password" id="login-password" class="form-control" placeholder="••••••••" /></div>
     <button class="btn btn-primary w-full" id="btn-login">Masuk</button>
   </div>
 </div>
 
-<!-- ==================== APP ==================== -->
 <div id="app" style="display:none;">
   <div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
-
   <aside id="sidebar">
-    <div class="sidebar-logo">
-      <div class="brand">🎨 Batik AN</div>
-      <div class="sub">Monitoring Produksi</div>
-    </div>
+    <div class="sidebar-logo"><div class="brand">🎨 Batik AN</div><div class="sub">Monitoring Produksi</div></div>
     <nav class="sidebar-nav">
       <div class="nav-section">Utama</div>
       <a class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">📊 Dashboard</a>
-      <a class="nav-item" data-page="papan" onclick="navigateTo('papan')">📋 Papan Tulis</a>
-      <a class="nav-item" data-page="batch" onclick="navigateTo('batch')">🧵 Batch & WIP</a>
+      <a class="nav-item" data-page="harian" onclick="navigateTo('harian')">📋 Input Harian</a>
+      <a class="nav-item" data-page="batch" onclick="navigateTo('batch')">🧵 Batch</a>
       <div class="nav-section">Monitoring</div>
       <a class="nav-item" data-page="pekerja-rekap" onclick="navigateTo('pekerja-rekap')">👷 Hasil Pekerja</a>
       <a class="nav-item" data-page="bahan" onclick="navigateTo('bahan')">🧪 Stok Obat <span class="badge badge-red hidden" id="bahan-badge" style="margin-left:auto;">0</span></a>
@@ -205,65 +150,50 @@
     </nav>
     <div class="sidebar-user">
       <div class="user-avatar" id="sidebar-avatar">A</div>
-      <div class="user-info">
-        <div class="user-name" id="sidebar-username">Loading...</div>
-        <div class="user-role" id="sidebar-role">-</div>
-      </div>
-      <button class="btn-logout" onclick="doLogout()" title="Keluar">
-        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-      </button>
+      <div class="user-info"><div class="user-name" id="sidebar-username">Loading...</div><div class="user-role" id="sidebar-role">-</div></div>
+      <button class="btn-logout" onclick="doLogout()" title="Keluar"><svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
     </div>
   </aside>
 
   <div id="topbar-mobile">
-    <button onclick="toggleMobileSidebar()" style="background:none;border:none;color:white;cursor:pointer;display:flex;">
-      <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
-    </button>
+    <button onclick="toggleMobileSidebar()" style="background:none;border:none;color:white;cursor:pointer;display:flex;"><svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <div class="topbar-title" id="mobile-page-title">Dashboard</div>
-    <button style="background:none;border:none;color:white;cursor:pointer;" onclick="doLogout()">
-      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-    </button>
+    <button style="background:none;border:none;color:white;cursor:pointer;" onclick="doLogout()"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
   </div>
 
   <main id="main-content">
-
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
       <div class="page-header"><div class="page-title">Dashboard Produksi</div><div class="page-subtitle" id="dash-date">—</div></div>
-      <div class="stat-grid" id="dash-stats"></div>
-      <div class="card">
-        <div class="card-title">🔴 Hasil Mengendap</div>
-        <div id="dash-mengendap"><div class="empty">Memuat…</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">⏳ Beban Antrian Pengobat</div>
-        <div id="dash-beban"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">📦 Posisi Kodi per Tahap</div>
-        <div id="dash-tahap"></div>
-      </div>
+      <div class="stat-grid" id="dash-pools"></div>
+      <div class="card"><div class="card-title">🎯 Target vs Hasil Pengobat — Hari Ini</div><div id="dash-target"></div></div>
+      <div class="card"><div class="card-title">🔴 Stok Mengendap</div><div id="dash-endap"></div></div>
+      <div class="card"><div class="card-title">📦 Stok per Batch</div><div class="table-wrap" id="dash-matrix"></div></div>
     </div>
 
-    <!-- PAPAN TULIS -->
-    <div class="page" id="page-papan">
-      <div class="page-header"><div class="page-title">📋 Papan Tulis Digital</div><div class="page-subtitle">Catat hasil kerja harian — bisa banyak entri</div></div>
-      <div class="card">
-        <div class="card-title">Tambah Hasil <button class="btn btn-primary btn-sm" onclick="openLogModal()">+ Entri</button></div>
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">Tanggal</label>
-          <input type="date" id="papan-date" class="form-control" style="max-width:200px;" onchange="loadPapan()" />
+    <!-- INPUT HARIAN -->
+    <div class="page" id="page-harian">
+      <div class="page-header"><div class="page-title">📋 Input Harian</div><div class="page-subtitle">Pagi: target & distribusi · Sore: hasil & perpindahan stok</div></div>
+      <div class="row-flex" style="margin-bottom:14px;align-items:center;">
+        <input type="date" id="hr-date" class="form-control" style="max-width:180px;" onchange="loadHarian()" />
+        <button class="btn btn-primary" onclick="openGerakModal()">+ Tambah Gerak</button>
+      </div>
+      <div class="pill-tab" id="hr-tabs">
+        <button class="active" data-s="pagi" onclick="setHrTab('pagi')">🌅 Pagi</button>
+        <button data-s="sore" onclick="setHrTab('sore')">🌇 Sore</button>
+      </div>
+      <div id="hr-pagi">
+        <div class="card">
+          <div class="card-title">🎯 Target Pengobat (briefing pagi) <button class="btn btn-outline btn-sm" onclick="saveTargets()">Simpan Target</button></div>
+          <div id="hr-target-list"></div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-title">Hasil Hari Ini</div>
-        <div id="papan-list"><div class="empty">Memuat…</div></div>
-      </div>
+      <div class="card"><div class="card-title">Gerak <span id="hr-sesi-label">Pagi</span> Hari Ini</div><div id="hr-gerak-list"><div class="empty">Memuat…</div></div></div>
     </div>
 
     <!-- BATCH -->
     <div class="page" id="page-batch">
-      <div class="page-header"><div class="page-title">🧵 Batch & WIP</div><div class="page-subtitle">Kelola batch produksi dan posisi kodi</div></div>
+      <div class="page-header"><div class="page-title">🧵 Batch</div><div class="page-subtitle">Batch ditentukan pengecap — golongan & tipe (tanpa warna)</div></div>
       <div style="margin-bottom:14px;"><button class="btn btn-primary" onclick="openBatchModal()">+ Buat Batch</button></div>
       <div class="pill-tab" id="batch-tabs">
         <button class="active" data-st="berjalan" onclick="setBatchTab('berjalan')">Berjalan</button>
@@ -283,7 +213,7 @@
       <div class="card"><div id="pekerja-rekap-list"><div class="empty">Memuat…</div></div></div>
     </div>
 
-    <!-- BAHAN -->
+    <!-- STOK OBAT -->
     <div class="page" id="page-bahan">
       <div class="page-header"><div class="page-title">🧪 Stok Obat</div><div class="page-subtitle">Pengambilan obat — stok lama & baru, sisa dihitung otomatis</div></div>
       <div style="margin-bottom:14px;" class="row-flex">
@@ -296,39 +226,30 @@
     <!-- HPP -->
     <div class="page" id="page-hpp">
       <div class="page-header"><div class="page-title">💰 HPP per Kodi</div><div class="page-subtitle">Harga pokok produksi per warna</div></div>
-      <div class="card">
-        <div class="card-title">Komponen Biaya Tetap <button class="btn btn-outline btn-sm" onclick="openHppConfigModal()">Ubah</button></div>
-        <div id="hpp-config"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">HPP per Warna (Poman)</div>
-        <div class="table-wrap"><div id="hpp-table"></div></div>
-      </div>
+      <div class="card"><div class="card-title">Komponen Biaya Tetap <button class="btn btn-outline btn-sm" onclick="openHppConfigModal()">Ubah</button></div><div id="hpp-config"></div></div>
+      <div class="card"><div class="card-title">HPP per Warna (Poman)</div><div class="table-wrap"><div id="hpp-table"></div></div></div>
     </div>
 
-    <!-- MASTER DATA -->
+    <!-- MASTER -->
     <div class="page" id="page-master">
-      <div class="page-header"><div class="page-title">⚙️ Master Data</div><div class="page-subtitle">Golongan, tipe, warna, alur, pekerja, racikan</div></div>
+      <div class="page-header"><div class="page-title">⚙️ Master Data</div><div class="page-subtitle">Golongan, tipe, warna, pekerja, biaya obat, ambang</div></div>
       <div class="card" id="seed-card">
         <div class="card-title">🌱 Data Awal</div>
-        <p class="muted" style="font-size:13px;margin-bottom:12px;">Isi otomatis golongan, tipe, warna, alur tahapan, pekerja, bahan, & konfigurasi HPP sesuai standar Batik AN. Aman dijalankan sekali di awal.</p>
+        <p class="muted" style="font-size:13px;margin-bottom:12px;">Isi otomatis golongan, tipe, warna, pekerja, obat, & konfigurasi HPP sesuai standar Batik AN.</p>
         <button class="btn btn-primary" id="btn-seed" onclick="seedAll()">Isi Data Awal</button>
       </div>
       <div class="pill-tab" id="master-tabs">
         <button class="active" data-m="golongan" onclick="setMasterTab('golongan')">Golongan/Tipe</button>
         <button data-m="warna" onclick="setMasterTab('warna')">Warna</button>
-        <button data-m="alur" onclick="setMasterTab('alur')">Alur</button>
         <button data-m="pekerja" onclick="setMasterTab('pekerja')">Pekerja</button>
-        <button data-m="racikan" onclick="setMasterTab('racikan')">Racikan</button>
+        <button data-m="biaya" onclick="setMasterTab('biaya')">Biaya Obat</button>
         <button data-m="ambang" onclick="setMasterTab('ambang')">Ambang</button>
       </div>
       <div id="master-content"><div class="empty">Memuat…</div></div>
     </div>
-
   </main>
 </div>
 
-<!-- GENERIC MODAL HOST -->
 <div class="modal-overlay" id="modal-host">
   <div class="modal" id="modal-box">
     <div class="modal-head"><div class="title" id="modal-title">Modal</div><button class="modal-close" onclick="closeHostModal()">×</button></div>
@@ -336,15 +257,13 @@
     <div class="modal-foot" id="modal-foot"></div>
   </div>
 </div>
-
 <div id="toast-wrap"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, query, where, orderBy, writeBatch, serverTimestamp, increment, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, query, where, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// ===== SAMA DENGAN APP GROSIR (satu proyek/DB) =====
 const firebaseConfig = {
   apiKey: "AIzaSyDmBWaM-0Mj34FlQbOqkZR5nv6D0Vl5aIw",
   authDomain: "store-batik-an.firebaseapp.com",
@@ -358,21 +277,56 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// ===== POOLS & PRESETS =====
+const POOLS = [
+  {id:'pengecapan',      label:'Sedang Dicap',        short:'Dicap',     wip:true},
+  {id:'putian',          label:'PB / PT / PL',        short:'Putian'},
+  {id:'lakar_dasar',     label:'Lakar warna dasar',   short:'L.Dasar',   color:true},
+  {id:'lakar_blm_batik', label:'Lakar belum dibatik', short:'Blm Batik'},
+  {id:'pembatikan',      label:'Sedang Dibatik',      short:'Dibatik',   wip:true},
+  {id:'lakar_sdh_batik', label:'Lakar sudah dibatik', short:'Sdh Batik', color:true},
+  {id:'ttb',             label:'Tutuban (TTB)',       short:'TTB',       color:true},
+  {id:'lakar_lorod',     label:'Lakar lorod',         short:'L.Lorod',   color:true},
+  {id:'jemuran_dalam',   label:'Jemuran dalam',       short:'Jmr Dalam', color:true},
+  {id:'jemuran_luar',    label:'Jemuran luar',        short:'Jmr Luar',  color:true},
+  {id:'selesai',         label:'Selesai',             short:'Selesai',   color:true},
+];
+const poolLabel = id => (POOLS.find(p=>p.id===id)||{}).label || id;
+const poolShort = id => (POOLS.find(p=>p.id===id)||{}).short || id;
+const GERAK_PRESET = [
+  {id:'mori',         label:'Mori → Pengecap (pagi)',                from:null,             to:'pengecapan',      cat:'cap',   sesi:'pagi'},
+  {id:'cap_done',     label:'Pengecapan selesai → Putian',           from:'pengecapan',    to:'putian',          cat:'cap',   sesi:'sore'},
+  {id:'beri_batik',   label:'Beri ke Pembatik (pagi)',               from:'lakar_blm_batik',to:'pembatikan',     cat:'batik', sesi:'pagi'},
+  {id:'batik_bir',    label:'Batik selesai → Lakar sudah dibatik',   from:'pembatikan',    to:'lakar_sdh_batik', cat:'batik', sesi:'sore'},
+  {id:'batik_ttb',    label:'Batik selesai → Tutuban',               from:'pembatikan',    to:'ttb',             cat:'batik', sesi:'sore'},
+  {id:'warna_dasar',  label:'Ngobat: warna dasar (Putian→Lakar dasar)',from:'putian',      to:'lakar_dasar',     cat:'obat',  sesi:'sore'},
+  {id:'lorod_dasar',  label:'Lorod dasar → Lakar belum dibatik',     from:'lakar_dasar',   to:'lakar_blm_batik', cat:'lorod', sesi:'sore'},
+  {id:'warna_br',     label:'Ngobat: warna (Lakar sdh batik→Lorod)', from:'lakar_sdh_batik',to:'lakar_lorod',    cat:'obat',  sesi:'sore'},
+  {id:'warna_ttb_dlm',label:'Ngobat: tutuban → Jemuran dalam',       from:'ttb',           to:'jemuran_dalam',   cat:'obat',  sesi:'sore'},
+  {id:'warna_ttb_lrd',label:'Ngobat: tutuban → Lakar lorod',         from:'ttb',           to:'lakar_lorod',     cat:'obat',  sesi:'sore'},
+  {id:'lorod_dlm',    label:'Lorod → Jemuran dalam',                 from:'lakar_lorod',   to:'jemuran_dalam',   cat:'lorod', sesi:'sore'},
+  {id:'lorod_luar',   label:'Lorod → Jemuran luar',                  from:'lakar_lorod',   to:'jemuran_luar',    cat:'lorod', sesi:'sore'},
+  {id:'jemur_dlm',    label:'Jemur dalam → Selesai',                 from:'jemuran_dalam', to:'selesai',         cat:'jemur', sesi:'sore'},
+  {id:'jemur_luar',   label:'Jemur luar → Selesai',                  from:'jemuran_luar',  to:'selesai',         cat:'jemur', sesi:'sore'},
+  {id:'manual',       label:'Manual (pilih kolam sendiri)',          from:null,            to:null,              cat:'lain',  sesi:'sore'},
+];
+
 // ===== STATE =====
-let currentUser = null, currentUserData = null;
-const M = { golongan:[], tipe:[], warna:[], alur:[], pekerja:[], bahan:[], racikan:[], pengambilan:[], config:null };
-let batchTab = 'berjalan', masterTab = 'golongan';
+let currentUser=null, currentUserData=null;
+const M = { golongan:[], tipe:[], warna:[], pekerja:[], bahan:[], pengambilan:[], config:null };
+let hrTab='pagi', batchTab='berjalan', masterTab='golongan';
+let dayStok=null, dayGerak=[];
 
 // ===== HELPERS =====
 const $ = id => document.getElementById(id);
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rp = n => 'Rp ' + Math.round(n||0).toLocaleString('id-ID');
-const todayStr = () => new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD local
-function toast(msg, type){ const w=$('toast-wrap'); const t=document.createElement('div'); t.className='toast '+(type||''); t.textContent=msg; w.appendChild(t); setTimeout(()=>t.remove(),2800); }
-function golNama(id){ return (M.golongan.find(g=>g.id===id)||{}).nama || id; }
-function warnaById(id){ return M.warna.find(w=>w.id===id); }
-function cabangFor(golId, warnaNama){ if(golId!=='poman') return null; return (['Putih','Coklat'].includes(warnaNama)) ? 'B' : 'A'; }
-const isOwner = () => currentUserData?.role === 'owner';
+const todayStr = () => new Date().toLocaleDateString('sv-SE');
+const num = v => { const n=parseFloat(v); return isNaN(n)?0:n; };
+function toast(msg,type){ const w=$('toast-wrap'); const t=document.createElement('div'); t.className='toast '+(type||''); t.textContent=msg; w.appendChild(t); setTimeout(()=>t.remove(),2800); }
+const golNama = id => (M.golongan.find(g=>g.id===id)||{}).nama || id;
+const warnaById = id => M.warna.find(w=>w.id===id);
+const isHarianPengobat = p => (p.tipe_upah==='harian') || /obat/i.test(p.peran_utama||'');
 
 // ===== AUTH =====
 $('btn-login').onclick = async () => {
@@ -385,10 +339,9 @@ $('btn-login').onclick = async () => {
 };
 $('login-password').addEventListener('keydown', e=>{ if(e.key==='Enter') $('btn-login').click(); });
 window.doLogout = () => signOut(auth);
-
 onAuthStateChanged(auth, async (user) => {
   if(user){
-    currentUser = user;
+    currentUser=user;
     try { const u=await getDoc(doc(db,'users',user.uid)); currentUserData = u.exists()? {id:u.id,...u.data()} : {nama:user.email.split('@')[0],role:'karyawan'}; }
     catch(e){ currentUserData = {nama:user.email.split('@')[0],role:'karyawan'}; }
     await showApp();
@@ -405,7 +358,7 @@ async function showApp(){
 }
 
 // ===== NAV =====
-const pageTitles={ dashboard:'Dashboard', papan:'Papan Tulis', batch:'Batch & WIP', 'pekerja-rekap':'Hasil Pekerja', bahan:'Stok Bahan', hpp:'HPP', master:'Master Data' };
+const pageTitles={ dashboard:'Dashboard', harian:'Input Harian', batch:'Batch', 'pekerja-rekap':'Hasil Pekerja', bahan:'Stok Obat', hpp:'HPP', master:'Master Data' };
 window.navigateTo = (page) => {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   $('page-'+page)?.classList.add('active');
@@ -413,7 +366,7 @@ window.navigateTo = (page) => {
   $('mobile-page-title').textContent = pageTitles[page]||'';
   closeMobileSidebar();
   if(page==='dashboard') loadDashboard();
-  if(page==='papan'){ if(!$('papan-date').value) $('papan-date').value=todayStr(); loadPapan(); }
+  if(page==='harian'){ if(!$('hr-date').value) $('hr-date').value=todayStr(); loadHarian(); }
   if(page==='batch') loadBatchList();
   if(page==='pekerja-rekap'){ if(!$('rekap-from').value){ const d=new Date(); d.setDate(d.getDate()-6); $('rekap-from').value=d.toLocaleDateString('sv-SE'); $('rekap-to').value=todayStr(); } loadPekerjaRekap(); }
   if(page==='bahan') loadBahan();
@@ -422,660 +375,475 @@ window.navigateTo = (page) => {
 };
 window.toggleMobileSidebar = () => { $('sidebar').classList.toggle('mobile-open'); $('sidebar-overlay').classList.toggle('open'); };
 window.closeMobileSidebar = () => { $('sidebar').classList.remove('mobile-open'); $('sidebar-overlay').classList.remove('open'); };
-
-// ===== GENERIC MODAL =====
-function showModal(title, bodyHtml, footHtml){ $('modal-title').textContent=title; $('modal-body').innerHTML=bodyHtml; $('modal-foot').innerHTML=footHtml||''; $('modal-host').classList.add('open'); }
+function showModal(title, body, foot){ $('modal-title').textContent=title; $('modal-body').innerHTML=body; $('modal-foot').innerHTML=foot||''; $('modal-host').classList.add('open'); }
 window.closeHostModal = () => $('modal-host').classList.remove('open');
 
 // ===== LOAD MASTER =====
 async function loadAllMaster(){
-  const cols=['golongan','tipe_produk','warna','alur','pekerja','bahan_baku','racikan_obat','pengambilan_obat'];
-  const [gol,tipe,warna,alur,pekerja,bahan,racikan,ambil] = await Promise.all(cols.map(c=>getDocs(collection(db,c))));
-  M.golongan = gol.docs.map(d=>({id:d.id,...d.data()}));
-  M.tipe     = tipe.docs.map(d=>({id:d.id,...d.data()}));
-  M.warna    = warna.docs.map(d=>({id:d.id,...d.data()}));
-  M.alur     = alur.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.urutan||0)-(b.urutan||0));
-  M.pekerja  = pekerja.docs.map(d=>({id:d.id,...d.data()}));
-  M.bahan    = bahan.docs.map(d=>({id:d.id,...d.data()}));
-  M.racikan  = racikan.docs.map(d=>({id:d.id,...d.data()}));
-  M.pengambilan = ambil.docs.map(d=>({id:d.id,...d.data()}));
+  const cols=['golongan','tipe_produk','warna','pekerja','bahan_baku','pengambilan_obat'];
+  const [gol,tipe,warna,pekerja,bahan,ambil] = await Promise.all(cols.map(c=>getDocs(collection(db,c))));
+  M.golongan=gol.docs.map(d=>({id:d.id,...d.data()}));
+  M.tipe=tipe.docs.map(d=>({id:d.id,...d.data()}));
+  M.warna=warna.docs.map(d=>({id:d.id,...d.data()}));
+  M.pekerja=pekerja.docs.map(d=>({id:d.id,...d.data()}));
+  M.bahan=bahan.docs.map(d=>({id:d.id,...d.data()}));
+  M.pengambilan=ambil.docs.map(d=>({id:d.id,...d.data()}));
   try { const c=await getDoc(doc(db,'config_produksi','hpp')); M.config = c.exists()? c.data() : null; } catch(e){ M.config=null; }
   updateBahanBadge();
 }
-function updateBahanBadge(){
-  const low = M.bahan.filter(b=>{ const s=obatStats(b); return s.stok_akhir <= (b.stok_minimum||0) && (b.stok_minimum||0)>0; }).length;
-  const badge=$('bahan-badge'); if(!badge) return;
-  if(low>0){ badge.textContent=low; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
-}
 
-// ===== ALUR HELPERS =====
-function alurSteps(golId, cabang){
-  return M.alur.filter(a=>a.golongan===golId && (a.cabang||null)===(cabang||null)).sort((a,b)=>a.urutan-b.urutan);
+// ===== STOK PROSES ENGINE =====
+const stokId = (batchId,pool) => `${batchId}__${pool}`;
+async function loadStokAll(){
+  const snap = await getDocs(collection(db,'stok_proses'));
+  const map={}; // batchId -> {pool: jumlah}
+  snap.docs.forEach(d=>{ const x=d.data(); if(!map[x.batch_id]) map[x.batch_id]={}; map[x.batch_id][x.pool]={ jumlah:x.jumlah_kodi||0, updated:x.updated_at }; });
+  return map;
 }
-function nextStep(golId, cabang, warnaNama, curUrutan){
-  const steps = alurSteps(golId, cabang).filter(s=>s.urutan>curUrutan && (!s.only_warna || s.only_warna.includes(warnaNama)));
-  return steps.length? steps[0] : null;
+function getStok(map,batchId,pool){ return map?.[batchId]?.[pool]?.jumlah || 0; }
+// apply a movement inside a writeBatch
+function applyGerak(wb, batchId, from, to, kodi){
+  if(from) wb.set(doc(db,'stok_proses',stokId(batchId,from)), { batch_id:batchId, pool:from, jumlah_kodi:increment(-kodi), updated_at:serverTimestamp() }, {merge:true});
+  if(to)   wb.set(doc(db,'stok_proses',stokId(batchId,to)),   { batch_id:batchId, pool:to,   jumlah_kodi:increment(kodi),  updated_at:serverTimestamp() }, {merge:true});
 }
-function firstStep(golId, cabang){ const s=alurSteps(golId,cabang); return s[0]||null; }
 
 // ===== DASHBOARD =====
 async function loadDashboard(){
   $('dash-date').textContent = new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const [batchSnap, wipSnap] = await Promise.all([
-    getDocs(query(collection(db,'batch'), where('status','==','berjalan'))),
-    getDocs(collection(db,'wip'))
-  ]);
+  const [stokMap, batchSnap] = await Promise.all([ loadStokAll(), getDocs(collection(db,'batch')) ]);
   const batches = batchSnap.docs.map(d=>({id:d.id,...d.data()}));
-  const wips = wipSnap.docs.map(d=>({id:d.id,...d.data()})).filter(w=>(w.jumlah_kodi||0)>0);
-  const totalKodi = wips.reduce((s,w)=>s+(w.jumlah_kodi||0),0);
-  const obatKodi = wips.filter(w=>w.jenis_pekerjaan==='obat').reduce((s,w)=>s+(w.jumlah_kodi||0),0);
+  const berjalan = batches.filter(b=>b.status!=='selesai' && b.status!=='dibatalkan');
+  // pool totals
+  const totals={}; POOLS.forEach(p=>totals[p.id]=0);
+  Object.values(stokMap).forEach(byPool=>{ Object.keys(byPool).forEach(pid=>{ totals[pid]=(totals[pid]||0)+(byPool[pid].jumlah||0); }); });
+  const showPools=['putian','lakar_blm_batik','lakar_sdh_batik','ttb','lakar_lorod','jemuran_dalam','jemuran_luar','selesai'];
+  $('dash-pools').innerHTML = showPools.map(pid=>{
+    const v=totals[pid]||0; return `<div class="stat-card"><div class="label">${esc(poolLabel(pid))}</div><div class="value" style="${pid==='selesai'?'color:var(--green-text)':''}">${(+v.toFixed(1))}</div><div class="sub">kodi</div></div>`;
+  }).join('');
+
+  // target vs hasil pengobat hari ini
+  const today=todayStr();
+  const [tgSnap, gkSnap] = await Promise.all([
+    getDocs(query(collection(db,'target_harian'), where('tanggal','==',today))),
+    getDocs(query(collection(db,'gerak'), where('tanggal','==',today)))
+  ]);
+  const targets=tgSnap.docs.map(d=>d.data());
+  const gks=gkSnap.docs.map(d=>d.data());
+  const realObat={}; gks.filter(g=>g.cat==='obat').forEach(g=>{ realObat[g.pekerja_id]=(realObat[g.pekerja_id]||0)+(g.jumlah_kodi||0); });
+  const pengobat=M.pekerja.filter(isHarianPengobat);
+  $('dash-target').innerHTML = pengobat.length? `<div class="table-wrap"><table><thead><tr><th>Pengobat</th><th>Target</th><th>Hasil obat</th><th>Status</th></tr></thead><tbody>${
+    pengobat.map(p=>{ const t=targets.find(x=>x.pekerja_id===p.id)?.target_kodi || p.target_kodi || 0; const r=realObat[p.id]||0;
+      const st = !t? '<span class="muted">—</span>' : (r>=t? '<span class="badge badge-green">Tercapai</span>' : `<span class="badge badge-amber">${(+(t-r).toFixed(1))} lagi</span>`);
+      return `<tr><td><b>${esc(p.nama)}</b></td><td>${t||'-'}</td><td><b>${(+r.toFixed(1))}</b></td><td>${st}</td></tr>`;
+    }).join('')
+  }</tbody></table></div>` : '<div class="muted" style="font-size:13px;">Belum ada pengobat. Isi data awal.</div>';
+
   // mengendap
-  const today = todayStr();
-  const ambang = (M.config?.ambang)||{cap:2,obat:3,batik:4,lorod:3,jemur:2};
-  const mengendap = wips.filter(w=>{
-    const masuk = w.tanggal_masuk_tahap; if(!masuk) return false;
-    const umur = Math.floor((new Date(today)-new Date(masuk))/86400000);
-    return umur > (ambang[w.jenis_pekerjaan]??3);
-  }).sort((a,b)=> new Date(a.tanggal_masuk_tahap)-new Date(b.tanggal_masuk_tahap));
+  const ambang=(M.config?.ambang_pool)||5;
+  const endap=[];
+  Object.keys(stokMap).forEach(bid=>{ const b=batches.find(x=>x.id===bid); if(!b||b.status==='selesai') return;
+    Object.keys(stokMap[bid]).forEach(pid=>{ const cell=stokMap[bid][pid]; if((cell.jumlah||0)<=0) return; if(pid==='selesai') return;
+      const upd = cell.updated?.toDate ? cell.updated.toDate() : null;
+      const umur = upd? Math.floor((Date.now()-upd.getTime())/86400000) : null;
+      if(umur!=null && umur>ambang) endap.push({batch:b.kode, pool:poolLabel(pid), jumlah:cell.jumlah, umur});
+    });
+  });
+  endap.sort((a,b)=>b.umur-a.umur);
+  $('dash-endap').innerHTML = endap.length? `<div class="table-wrap"><table><thead><tr><th>Batch</th><th>Kolam</th><th>Kodi</th><th>Umur</th></tr></thead><tbody>${
+    endap.map(e=>`<tr><td>${esc(e.batch)}</td><td>${esc(e.pool)}</td><td><b>${(+e.jumlah.toFixed(1))}</b></td><td><span class="badge badge-red">${e.umur} hari</span></td></tr>`).join('')
+  }</tbody></table></div>` : '<div class="empty"><div class="ico">✅</div>Tidak ada stok mengendap</div>';
 
-  $('dash-stats').innerHTML = `
-    <div class="stat-card"><div class="label">Batch Berjalan</div><div class="value">${batches.length}</div></div>
-    <div class="stat-card"><div class="label">Total Kodi WIP</div><div class="value">${totalKodi}</div><div class="sub">sedang diproses</div></div>
-    <div class="stat-card"><div class="label">Antri Pengobat</div><div class="value" style="color:var(--amber-text)">${obatKodi}</div><div class="sub">kodi menunggu obat</div></div>
-    <div class="stat-card"><div class="label">Mengendap</div><div class="value" style="color:var(--red-text)">${mengendap.length}</div><div class="sub">grup kodi lewat ambang</div></div>`;
-
-  const batchName = id => { const b=batches.find(x=>x.id===id); return b? b.kode : '—'; };
-  $('dash-mengendap').innerHTML = mengendap.length ? `<div class="table-wrap"><table><thead><tr><th>Batch</th><th>Tahap</th><th>Warna</th><th>Kodi</th><th>Umur</th></tr></thead><tbody>${
-    mengendap.map(w=>{ const umur=Math.floor((new Date(today)-new Date(w.tanggal_masuk_tahap))/86400000);
-      return `<tr><td>${esc(batchName(w.batch_id))}</td><td>${esc(w.nama_tahap)}</td><td>${esc(w.warna_nama||'-')}</td><td><b>${w.jumlah_kodi}</b></td><td><span class="badge badge-red">${umur} hari</span></td></tr>`;
-    }).join('')}</tbody></table></div>` : '<div class="empty"><div class="ico">✅</div>Tidak ada hasil mengendap</div>';
-
-  // beban pengobat per golongan/warna
-  const beban={};
-  wips.filter(w=>w.jenis_pekerjaan==='obat').forEach(w=>{ const k=golNama(w.golongan)+' • '+(w.warna_nama||'-'); beban[k]=(beban[k]||0)+(w.jumlah_kodi||0); });
-  const bk=Object.keys(beban).sort((a,b)=>beban[b]-beban[a]);
-  $('dash-beban').innerHTML = bk.length ? `<div class="row-flex">${bk.map(k=>`<div class="chip">${esc(k)} <b>${beban[k]} kodi</b></div>`).join('')}</div>` : '<div class="muted" style="font-size:13px;">Tidak ada antrian pengobatan.</div>';
-
-  // posisi per tahap
-  const perTahap={};
-  wips.forEach(w=>{ const k=golNama(w.golongan)+' — '+w.nama_tahap; perTahap[k]=(perTahap[k]||0)+(w.jumlah_kodi||0); });
-  const tk=Object.keys(perTahap);
-  $('dash-tahap').innerHTML = tk.length ? `<div class="table-wrap"><table><tbody>${tk.map(k=>`<tr><td>${esc(k)}</td><td style="text-align:right;"><b>${perTahap[k]}</b> kodi</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Belum ada batch berjalan</div>';
+  // matrix per batch
+  const cols=POOLS.filter(p=>p.id!=='selesai');
+  $('dash-matrix').innerHTML = berjalan.length? `<table><thead><tr><th>Batch</th>${cols.map(p=>`<th title="${esc(p.label)}">${esc(p.short)}</th>`).join('')}<th>Selesai</th></tr></thead><tbody>${
+    berjalan.map(b=>`<tr><td><b>${esc(b.kode)}</b><div class="muted" style="font-size:10.5px;">${esc(golNama(b.golongan))} ${esc(b.tipe_nama||'')}</div></td>${
+      cols.map(p=>{ const v=getStok(stokMap,b.id,p.id); return `<td style="${v?'':'color:var(--text-muted)'}">${v?(+v.toFixed(1)):'·'}</td>`; }).join('')
+    }<td style="color:var(--green-text);font-weight:700;">${(+getStok(stokMap,b.id,'selesai').toFixed(1))||'·'}</td></tr>`).join('')
+  }</tbody></table>` : '<div class="empty">Belum ada batch berjalan</div>';
 }
+
+// ===== INPUT HARIAN =====
+window.setHrTab = s => { hrTab=s; document.querySelectorAll('#hr-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.s===s)); $('hr-pagi').style.display = s==='pagi'?'':'none'; $('hr-sesi-label').textContent = s==='pagi'?'Pagi':'Sore'; renderGerakList(); };
+async function loadHarian(){
+  const tgl=$('hr-date').value||todayStr();
+  const [tgSnap, gkSnap] = await Promise.all([
+    getDocs(query(collection(db,'target_harian'), where('tanggal','==',tgl))),
+    getDocs(query(collection(db,'gerak'), where('tanggal','==',tgl)))
+  ]);
+  const targets=tgSnap.docs.map(d=>({id:d.id,...d.data()}));
+  dayGerak = gkSnap.docs.map(d=>({id:d.id,...d.data()}));
+  // target list
+  const pengobat=M.pekerja.filter(isHarianPengobat);
+  $('hr-target-list').innerHTML = pengobat.length? `<div class="table-wrap"><table><thead><tr><th>Pengobat</th><th>Target kodi</th><th>Catatan briefing</th></tr></thead><tbody>${
+    pengobat.map(p=>{ const t=targets.find(x=>x.pekerja_id===p.id); return `<tr><td><b>${esc(p.nama)}</b>${p.target_wajib?' <span class="badge badge-amber">wajib</span>':''}</td><td><input type="number" step="0.5" class="form-control kodi-input tg-inp" data-p="${p.id}" data-n="${esc(p.nama)}" value="${t?.target_kodi??(p.target_kodi||'')}"></td><td><input class="form-control tg-cat" data-p="${p.id}" value="${esc(t?.catatan||'')}" placeholder="—"></td></tr>`; }).join('')
+  }</tbody></table></div>` : '<div class="muted" style="font-size:13px;">Belum ada pengobat.</div>';
+  renderGerakList();
+}
+window.saveTargets = async () => {
+  const tgl=$('hr-date').value||todayStr();
+  const wb=writeBatch(db);
+  document.querySelectorAll('.tg-inp').forEach(i=>{ const pid=i.dataset.p; const cat=document.querySelector('.tg-cat[data-p="'+pid+'"]')?.value||'';
+    wb.set(doc(db,'target_harian',`${tgl}__${pid}`), { tanggal:tgl, pekerja_id:pid, pekerja_nama:i.dataset.n, target_kodi:num(i.value), catatan:cat.trim() });
+  });
+  await wb.commit(); toast('Target tersimpan','success');
+};
+function renderGerakList(){
+  const rows = dayGerak.filter(g=>(g.sesi||'sore')===hrTab).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0));
+  const el=$('hr-gerak-list');
+  if(!rows.length){ el.innerHTML='<div class="empty"><div class="ico">📋</div>Belum ada gerak '+hrTab+'</div>'; return; }
+  const tot = rows.reduce((s,g)=>s+(g.jumlah_kodi||0),0);
+  el.innerHTML = `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">${rows.length} gerak · total ${(+tot.toFixed(1))} kodi</div><div class="table-wrap"><table><thead><tr><th>Batch</th><th>Gerak</th><th>Warna</th><th>Pekerja</th><th>Kodi</th><th></th></tr></thead><tbody>${
+    rows.map(g=>`<tr><td><b>${esc(g.batch_kode||'-')}</b></td><td style="font-size:12.5px;">${esc(poolShort(g.from_pool)||'•')} <span class="flow-arrow">→</span> ${esc(poolShort(g.to_pool)||'•')}<div class="muted" style="font-size:10.5px;">${esc(g.jenis_label||'')}</div></td><td>${esc(g.warna_nama||'-')}</td><td>${esc(g.pekerja_nama||'-')}</td><td><b>${g.jumlah_kodi}</b></td><td><button class="btn btn-danger btn-sm" onclick="delGerak('${g.id}')">✕</button></td></tr>`).join('')
+  }</tbody></table></div>`;
+}
+window.openGerakModal = async () => {
+  const bsnap = await getDocs(collection(db,'batch'));
+  const batches = bsnap.docs.map(d=>({id:d.id,...d.data()})).filter(b=>b.status!=='selesai'&&b.status!=='dibatalkan');
+  if(!batches.length){ toast('Belum ada batch berjalan','error'); return; }
+  window._gerakBatches=batches;
+  const presetOpts = GERAK_PRESET.map(p=>`<option value="${p.id}">${esc(p.label)}</option>`).join('');
+  const batchOpts = batches.map(b=>`<option value="${b.id}">${esc(b.kode)} (${esc(golNama(b.golongan))})</option>`).join('');
+  const pekOpts = '<option value="">— (opsional)</option>'+M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
+  const poolOpts = sel => POOLS.map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.label)}</option>`).join('');
+  showModal('Tambah Gerak', `
+    <div class="form-group"><label class="form-label">Jenis Gerak (preset)</label><select class="form-control" id="gk-preset" onchange="gkPresetChange()">${presetOpts}</select></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Dari kolam</label><select class="form-control" id="gk-from"><option value="">— (luar)</option>${poolOpts()}</select></div>
+      <div class="form-group"><label class="form-label">Ke kolam</label><select class="form-control" id="gk-to"><option value="">— (keluar)</option>${poolOpts()}</select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Batch</label><select class="form-control" id="gk-batch" onchange="gkWarnaRefresh()">${batchOpts}</select></div>
+    <div class="form-group" id="gk-warna-wrap"><label class="form-label">Warna (ditentukan saat ngobat, opsional)</label><select class="form-control" id="gk-warna"></select></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Pekerja</label><select class="form-control" id="gk-pekerja">${pekOpts}</select></div>
+      <div class="form-group"><label class="form-label">Jumlah Kodi</label><input type="number" step="0.5" min="0" class="form-control" id="gk-kodi"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Sesi</label><select class="form-control" id="gk-sesi"><option value="pagi">🌅 Pagi</option><option value="sore" selected>🌇 Sore</option></select></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="gk-save" onclick="saveGerak()">Simpan Gerak</button>`);
+  $('gk-batch').value = batches[0].id;
+  gkPresetChange();
+};
+window.gkPresetChange = () => {
+  const p=GERAK_PRESET.find(x=>x.id===$('gk-preset').value);
+  $('gk-from').value=p.from||''; $('gk-to').value=p.to||''; $('gk-sesi').value=p.sesi;
+  gkWarnaRefresh();
+};
+window.gkWarnaRefresh = () => {
+  const b=(window._gerakBatches||[]).find(x=>x.id===$('gk-batch').value);
+  const opts='<option value="">— tanpa warna</option>'+M.warna.filter(w=>!b||w.golongan===b.golongan).map(w=>`<option value="${w.id}">${esc(w.nama)}</option>`).join('');
+  $('gk-warna').innerHTML=opts;
+};
+window.saveGerak = async () => {
+  const preset=GERAK_PRESET.find(x=>x.id===$('gk-preset').value);
+  const b=(window._gerakBatches||[]).find(x=>x.id===$('gk-batch').value);
+  const from=$('gk-from').value||null, to=$('gk-to').value||null;
+  const kodi=num($('gk-kodi').value);
+  if(!b){ toast('Pilih batch','error'); return; }
+  if(kodi<=0){ toast('Isi jumlah kodi','error'); return; }
+  if(!from && !to){ toast('Pilih kolam asal/tujuan','error'); return; }
+  const pekId=$('gk-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
+  const warnaId=$('gk-warna').value, warna=warnaById(warnaId);
+  const tgl=$('hr-date').value||todayStr();
+  $('gk-save').disabled=true;
+  try {
+    const wb=writeBatch(db);
+    applyGerak(wb, b.id, from, to, kodi);
+    wb.set(doc(collection(db,'gerak')), { tanggal:tgl, sesi:$('gk-sesi').value, jenis_preset:preset.id, jenis_label:preset.label, cat:preset.cat, batch_id:b.id, batch_kode:b.kode, golongan:b.golongan, from_pool:from, to_pool:to, warna_id:warnaId||null, warna_nama:warna?.nama||'', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'', jumlah_kodi:kodi, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
+    await wb.commit();
+    toast('Gerak tercatat ✅','success'); closeHostModal(); loadHarian();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('gk-save').disabled=false; }
+};
+window.delGerak = async (id) => {
+  const g=dayGerak.find(x=>x.id===id); if(!g) return;
+  if(!confirm('Hapus gerak ini? Stok akan dikembalikan.')) return;
+  const wb=writeBatch(db);
+  applyGerak(wb, g.batch_id, g.to_pool, g.from_pool, g.jumlah_kodi); // reverse
+  wb.delete(doc(db,'gerak',id));
+  await wb.commit(); toast('Dihapus & stok dikembalikan'); loadHarian();
+};
 
 // ===== BATCH =====
 window.setBatchTab = t => { batchTab=t; document.querySelectorAll('#batch-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.st===t)); loadBatchList(); };
 async function loadBatchList(){
-  const snap = await getDocs(collection(db,'batch'));
-  let batches = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.tanggal_mulai||'').localeCompare(a.tanggal_mulai||''));
-  if(batchTab!=='semua') batches=batches.filter(b=>b.status===batchTab);
-  const wipSnap = await getDocs(collection(db,'wip'));
-  const wips = wipSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const [snap, stokMap] = await Promise.all([ getDocs(collection(db,'batch')), loadStokAll() ]);
+  let batches=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.tanggal_mulai||'').localeCompare(a.tanggal_mulai||''));
+  if(batchTab!=='semua') batches=batches.filter(b=> batchTab==='selesai'? b.status==='selesai' : (b.status!=='selesai'&&b.status!=='dibatalkan'));
   const el=$('batch-list');
   if(!batches.length){ el.innerHTML='<div class="empty"><div class="ico">🧵</div>Belum ada batch</div>'; return; }
   el.innerHTML = batches.map(b=>{
-    const bw = wips.filter(w=>w.batch_id===b.id && (w.jumlah_kodi||0)>0);
-    const wipKodi = bw.reduce((s,w)=>s+(w.jumlah_kodi||0),0);
-    const statusBadge = b.status==='berjalan'?'<span class="badge badge-blue">Berjalan</span>': b.status==='selesai'?'<span class="badge badge-green">Selesai</span>':'<span class="badge badge-gray">Batal</span>';
-    const grp = bw.sort((a,b)=>a.urutan-b.urutan).map(w=>`<div class="chip">${esc(w.nama_tahap)} • ${esc(w.warna_nama||'-')} <b>${w.jumlah_kodi}</b></div>`).join('');
+    const cells=POOLS.map(p=>{ const v=getStok(stokMap,b.id,p.id); return v>0? `<span class="chip">${esc(p.short)} <b>${(+v.toFixed(1))}</b></span>`:''; }).filter(Boolean).join(' ');
+    const selesai=getStok(stokMap,b.id,'selesai');
+    const sb = b.status==='selesai'?'<span class="badge badge-green">Selesai</span>':'<span class="badge badge-blue">Berjalan</span>';
     return `<div class="card">
-      <div class="card-title"><span>${esc(b.kode)} <span class="muted" style="font-weight:500;font-size:12px;">${esc(golNama(b.golongan))} · ${esc(b.tipe_nama||'')}</span></span>${statusBadge}</div>
-      <div class="muted" style="font-size:12.5px;margin-bottom:8px;">Mulai ${esc(b.tanggal_mulai||'-')} · Total ${b.total_kodi} kodi · Selesai ${b.total_selesai||0} kodi · WIP ${wipKodi} kodi</div>
-      <div class="row-flex" style="margin-bottom:10px;">${grp||'<span class="muted" style="font-size:12px;">Tidak ada WIP aktif</span>'}</div>
+      <div class="card-title"><span>${esc(b.kode)} <span class="muted" style="font-weight:500;font-size:12px;">${esc(golNama(b.golongan))} · ${esc(b.tipe_nama||'')}</span></span>${sb}</div>
+      <div class="muted" style="font-size:12.5px;margin-bottom:8px;">Mulai ${esc(b.tanggal_mulai||'-')} · Target ${b.total_kodi||0} kodi · Selesai ${(+selesai.toFixed(1))} kodi</div>
+      <div class="row-flex" style="margin-bottom:10px;">${cells||'<span class="muted" style="font-size:12px;">belum ada stok berjalan</span>'}</div>
       <div class="row-flex">
-        ${b.status==='berjalan'?`<button class="btn btn-outline btn-sm" onclick="openLogModal('${b.id}')">+ Catat Hasil</button>`:''}
-        ${b.status==='berjalan'&&(b.total_selesai||0)>0?`<button class="btn btn-outline btn-sm" onclick="openGrosirModal('${b.id}')">→ Kirim ke Grosir</button>`:''}
-        ${b.status==='berjalan'?`<button class="btn btn-outline btn-sm" onclick="finishBatch('${b.id}')">Tandai Selesai</button>`:''}
+        ${selesai>0?`<button class="btn btn-outline btn-sm" onclick="openGrosirModal('${b.id}')">→ Kirim ke Grosir</button>`:''}
+        ${b.status!=='selesai'?`<button class="btn btn-outline btn-sm" onclick="finishBatch('${b.id}')">Tandai Selesai</button>`:''}
+        <button class="btn btn-danger btn-sm" onclick="delBatch('${b.id}')">Hapus</button>
       </div>
     </div>`;
   }).join('');
 }
-
 window.openBatchModal = () => {
-  if(!M.golongan.length){ toast('Isi data awal dulu di Master Data','error'); return; }
-  const golOpts = M.golongan.map(g=>`<option value="${g.id}">${esc(g.nama)}</option>`).join('');
+  if(!M.golongan.length){ toast('Isi data awal dulu','error'); return; }
+  const golOpts=M.golongan.map(g=>`<option value="${g.id}">${esc(g.nama)}</option>`).join('');
   showModal('Buat Batch', `
     <div class="form-group"><label class="form-label">Golongan</label><select class="form-control" id="bm-gol" onchange="bmGolChange()">${golOpts}</select></div>
     <div class="form-group"><label class="form-label">Tipe Produk</label><select class="form-control" id="bm-tipe"></select></div>
-    <div class="form-group"><label class="form-label">Kode Batch</label><input class="form-control" id="bm-kode" placeholder="POM-2026-012" /></div>
-    <div class="form-group"><label class="form-label">Tanggal Mulai</label><input type="date" class="form-control" id="bm-tgl" value="${todayStr()}" /></div>
-    <label class="form-label">Rincian Kodi per Warna</label>
-    <div id="bm-warna-rows"></div>
-    <button class="btn btn-outline btn-sm" type="button" onclick="bmAddWarnaRow()" style="margin-top:6px;">+ Warna</button>
+    <div class="form-group"><label class="form-label">Kode Batch</label><input class="form-control" id="bm-kode" placeholder="POM-Tapih-01"></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Total Kodi (target)</label><input type="number" step="0.5" class="form-control" id="bm-kodi" placeholder="7"></div>
+      <div class="form-group"><label class="form-label">Tanggal Mulai</label><input type="date" class="form-control" id="bm-tgl" value="${todayStr()}"></div>
+    </div>
+    <div class="muted" style="font-size:12px;">Warna tidak diisi di sini — ditentukan orang ngobat saat pewarnaan.</div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="bm-save" onclick="saveBatch()">Simpan</button>`);
-  bmGolChange(); bmAddWarnaRow();
+  bmGolChange();
 };
-window.bmGolChange = () => {
-  const gol=$('bm-gol').value;
-  $('bm-tipe').innerHTML = M.tipe.filter(t=>t.golongan===gol).map(t=>`<option value="${t.id}">${esc(t.nama)}</option>`).join('') || '<option value="">(belum ada tipe)</option>';
-  // refresh existing warna selects
-  document.querySelectorAll('.bm-warna-sel').forEach(sel=>{ const v=sel.value; sel.innerHTML=warnaOptsFor(gol); sel.value=v; });
-};
-function warnaOptsFor(gol){ return M.warna.filter(w=>w.golongan===gol).map(w=>`<option value="${w.id}">${esc(w.nama)}</option>`).join(''); }
-window.bmAddWarnaRow = () => {
-  const gol=$('bm-gol').value; const div=document.createElement('div'); div.className='row-flex'; div.style.marginBottom='6px';
-  div.innerHTML = `<select class="form-control bm-warna-sel" style="flex:1;">${warnaOptsFor(gol)}</select>
-    <input type="number" class="form-control kodi-input bm-warna-kodi" placeholder="kodi" min="1" />
-    <button class="btn btn-outline btn-sm" type="button" onclick="this.parentElement.remove()">✕</button>`;
-  $('bm-warna-rows').appendChild(div);
-};
+window.bmGolChange = () => { const g=$('bm-gol').value; $('bm-tipe').innerHTML=M.tipe.filter(t=>t.golongan===g).map(t=>`<option value="${t.id}">${esc(t.nama)}</option>`).join('')||'<option value="">(belum ada tipe)</option>'; };
 window.saveBatch = async () => {
-  const gol=$('bm-gol').value, tipeId=$('bm-tipe').value, kode=$('bm-kode').value.trim(), tgl=$('bm-tgl').value;
+  const gol=$('bm-gol').value, tipeId=$('bm-tipe').value, kode=$('bm-kode').value.trim();
   if(!kode){ toast('Isi kode batch','error'); return; }
-  const rows=[...document.querySelectorAll('#bm-warna-rows .row-flex')].map(r=>({ warnaId:r.querySelector('.bm-warna-sel').value, kodi:parseInt(r.querySelector('.bm-warna-kodi').value)||0 })).filter(r=>r.warnaId&&r.kodi>0);
-  if(!rows.length){ toast('Tambah minimal 1 warna + kodi','error'); return; }
   const tipe=M.tipe.find(t=>t.id===tipeId);
-  const total = rows.reduce((s,r)=>s+r.kodi,0);
   $('bm-save').disabled=true;
   try {
-    const batchRef = await addDoc(collection(db,'batch'), { kode, golongan:gol, tipe_produk_id:tipeId, tipe_nama:tipe?.nama||'', tanggal_mulai:tgl, total_kodi:total, total_selesai:0, status:'berjalan', created_at:serverTimestamp() });
-    const wb = writeBatch(db);
-    for(const r of rows){
-      const w=warnaById(r.warnaId); const cab=cabangFor(gol, w?.nama);
-      const fs=firstStep(gol, cab);
-      if(!fs){ toast('Alur belum lengkap utk '+golNama(gol)+(cab?(' cab '+cab):''),'error'); $('bm-save').disabled=false; return; }
-      const wref=doc(collection(db,'wip'));
-      wb.set(wref, { batch_id:batchRef.id, batch_kode:kode, golongan:gol, cabang:cab, warna_id:r.warnaId, warna_nama:w?.nama||'', urutan:fs.urutan, nama_tahap:fs.nama_tahap, jenis_pekerjaan:fs.jenis_pekerjaan, butuh_warna:!!fs.butuh_warna, jumlah_kodi:r.kodi, tanggal_masuk_tahap:tgl });
-      wb.set(doc(collection(db,'batch_warna')), { batch_id:batchRef.id, warna_id:r.warnaId, warna_nama:w?.nama||'', jumlah_kodi:r.kodi });
-    }
-    await wb.commit();
+    await addDoc(collection(db,'batch'), { kode, golongan:gol, tipe_produk_id:tipeId, tipe_nama:tipe?.nama||'', total_kodi:num($('bm-kodi').value), tanggal_mulai:$('bm-tgl').value, status:'berjalan', created_at:serverTimestamp() });
     toast('Batch '+kode+' dibuat ✅','success'); closeHostModal(); loadBatchList();
   } catch(e){ toast('Gagal: '+e.message,'error'); $('bm-save').disabled=false; }
 };
-window.finishBatch = async (id) => {
-  if(!confirm('Tandai batch ini selesai? WIP yang tersisa akan dianggap rampung.')) return;
-  await updateDoc(doc(db,'batch',id), { status:'selesai', selesai_at:serverTimestamp() });
-  toast('Batch ditandai selesai','success'); loadBatchList();
+window.finishBatch = async (id) => { if(!confirm('Tandai batch ini selesai?')) return; await updateDoc(doc(db,'batch',id), { status:'selesai', selesai_at:serverTimestamp() }); toast('Batch selesai','success'); loadBatchList(); };
+window.delBatch = async (id) => {
+  if(!confirm('Hapus batch ini beserta seluruh stok prosesnya?')) return;
+  const snap=await getDocs(query(collection(db,'stok_proses'), where('batch_id','==',id)));
+  const wb=writeBatch(db); snap.docs.forEach(d=>wb.delete(d.ref)); wb.delete(doc(db,'batch',id));
+  await wb.commit(); toast('Batch dihapus'); loadBatchList();
 };
 
-// ===== LOG KERJA (PAPAN TULIS) =====
-window.openLogModal = async (preBatch) => {
-  if(!M.pekerja.length){ toast('Belum ada pekerja. Isi data awal dulu.','error'); return; }
-  const bsnap = await getDocs(query(collection(db,'batch'), where('status','==','berjalan')));
-  const batches = bsnap.docs.map(d=>({id:d.id,...d.data()}));
-  if(!batches.length){ toast('Belum ada batch berjalan','error'); return; }
-  const pekOpts = M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
-  const batchOpts = batches.map(b=>`<option value="${b.id}" ${b.id===preBatch?'selected':''}>${esc(b.kode)} (${esc(golNama(b.golongan))})</option>`).join('');
-  showModal('Catat Hasil Kerja', `
-    <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="lg-tgl" value="${$('papan-date').value||todayStr()}" /></div>
-    <div class="form-group"><label class="form-label">Pekerja</label><select class="form-control" id="lg-pekerja">${pekOpts}</select></div>
-    <div class="form-group"><label class="form-label">Batch</label><select class="form-control" id="lg-batch" onchange="lgBatchChange()">${batchOpts}</select></div>
-    <div class="form-group"><label class="form-label">Grup WIP / Tahap</label><select class="form-control" id="lg-wip" onchange="lgWipChange()"></select></div>
-    <div id="lg-warna-wrap" class="form-group hidden"><label class="form-label">Warna (dipilih saat tahap ini)</label><select class="form-control" id="lg-warna"></select></div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">Peran hari ini</label><input class="form-control" id="lg-peran" /></div>
-      <div class="form-group"><label class="form-label">Jumlah Kodi</label><input type="number" step="0.5" min="0.5" class="form-control" id="lg-kodi" /></div>
-    </div>
-    <div class="muted" id="lg-flow" style="font-size:12px;"></div>
-  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="lg-save" onclick="saveLog()">Simpan & Pindah Tahap</button>`);
-  window._logBatches = batches;
-  await lgBatchChange();
+// ===== GROSIR =====
+window.openGrosirModal = async (batchId) => {
+  const [bDoc, stokMap, psnap] = await Promise.all([ getDoc(doc(db,'batch',batchId)), loadStokAll(), getDocs(query(collection(db,'produk'), where('aktif','==',true))) ]);
+  const b=bDoc.data(); const selesai=getStok(stokMap,batchId,'selesai');
+  const produk=psnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nama.localeCompare(b.nama));
+  const opts=produk.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
+  showModal('Kirim ke Stok Grosir', `
+    <p class="muted" style="font-size:13px;margin-bottom:12px;">Batch <b>${esc(b.kode)}</b> punya <b>${(+selesai.toFixed(1))} kodi</b> selesai. Pilih produk Grosir & jumlah kodi yang masuk stok rumah.</p>
+    <div class="form-group"><label class="form-label">Produk Grosir</label><select class="form-control" id="gr-produk">${opts||'<option value="">(belum ada produk grosir)</option>'}</select></div>
+    <div class="form-group"><label class="form-label">Jumlah Kodi</label><input type="number" step="0.5" class="form-control" id="gr-kodi" value="${(+selesai.toFixed(1))}"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="gr-save" onclick="saveGrosir('${batchId}')">Kirim</button>`);
 };
-window.lgBatchChange = async () => {
-  const bid=$('lg-batch').value;
-  const wsnap = await getDocs(query(collection(db,'wip'), where('batch_id','==',bid)));
-  window._logWips = wsnap.docs.map(d=>({id:d.id,...d.data()})).filter(w=>(w.jumlah_kodi||0)>0).sort((a,b)=>a.urutan-b.urutan);
-  $('lg-wip').innerHTML = window._logWips.length ? window._logWips.map(w=>`<option value="${w.id}">${esc(w.nama_tahap)} • ${esc(w.warna_nama||'-')} (${w.jumlah_kodi} kodi)</option>`).join('') : '<option value="">(tidak ada WIP)</option>';
-  lgWipChange();
-};
-window.lgWipChange = () => {
-  const w = (window._logWips||[]).find(x=>x.id===$('lg-wip').value);
-  if(!w){ $('lg-flow').textContent=''; return; }
-  $('lg-peran').value = w.jenis_pekerjaan;
-  $('lg-kodi').value = w.jumlah_kodi;
-  $('lg-kodi').max = w.jumlah_kodi;
-  // warna picker
-  const wrap=$('lg-warna-wrap');
-  if(w.butuh_warna){ wrap.classList.remove('hidden'); $('lg-warna').innerHTML=warnaOptsFor(w.golongan); $('lg-warna').value=w.warna_id; }
-  else wrap.classList.add('hidden');
-  // flow preview
-  const ns = nextStep(w.golongan, w.cabang, w.warna_nama, w.urutan);
-  $('lg-flow').innerHTML = `Setelah disimpan: <b>${esc(w.nama_tahap)}</b> → ${ns?('<b>'+esc(ns.nama_tahap)+'</b>'):'<span class="badge badge-green">SELESAI ✔</span>'}`;
-};
-window.saveLog = async () => {
-  const w = (window._logWips||[]).find(x=>x.id===$('lg-wip').value);
-  if(!w){ toast('Pilih grup WIP','error'); return; }
-  const pekId=$('lg-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
-  const tgl=$('lg-tgl').value, peran=$('lg-peran').value.trim()||w.jenis_pekerjaan;
-  const kodi=parseFloat($('lg-kodi').value)||0;
-  if(kodi<=0){ toast('Isi jumlah kodi','error'); return; }
-  if(kodi> (w.jumlah_kodi||0)+0.001){ toast('Kodi melebihi yang tersedia ('+w.jumlah_kodi+')','error'); return; }
-  const warnaId = w.butuh_warna ? $('lg-warna').value : w.warna_id;
-  const warnaNama = warnaById(warnaId)?.nama || w.warna_nama;
-  const cab = cabangFor(w.golongan, warnaNama); // recompute (warna may have been chosen now)
-  $('lg-save').disabled=true;
+window.saveGrosir = async (batchId) => {
+  const pid=$('gr-produk').value, kodi=num($('gr-kodi').value);
+  if(!pid||kodi<=0){ toast('Pilih produk & jumlah','error'); return; }
+  $('gr-save').disabled=true;
   try {
-    const wb = writeBatch(db);
-    // 1) reduce / remove source wip
-    const remain = (w.jumlah_kodi||0) - kodi;
-    if(remain <= 0.001) wb.delete(doc(db,'wip',w.id));
-    else wb.update(doc(db,'wip',w.id), { jumlah_kodi: remain });
-    // 2) next step
-    const ns = nextStep(w.golongan, cab, warnaNama, w.urutan);
-    if(ns){
-      // merge into existing dest wip of same batch/urutan/warna if exists
-      const dest = (window._logWips||[]).find(x=>x.id!==w.id && x.urutan===ns.urutan && x.warna_id===warnaId);
-      if(dest) wb.update(doc(db,'wip',dest.id), { jumlah_kodi:(dest.jumlah_kodi||0)+kodi, tanggal_masuk_tahap:tgl });
-      else wb.set(doc(collection(db,'wip')), { batch_id:w.batch_id, batch_kode:w.batch_kode, golongan:w.golongan, cabang:cab, warna_id:warnaId, warna_nama:warnaNama, urutan:ns.urutan, nama_tahap:ns.nama_tahap, jenis_pekerjaan:ns.jenis_pekerjaan, butuh_warna:!!ns.butuh_warna, jumlah_kodi:kodi, tanggal_masuk_tahap:tgl });
-    } else {
-      // selesai
-      wb.update(doc(db,'batch',w.batch_id), { total_selesai: increment(kodi) });
-    }
-    // 3) log
-    wb.set(doc(collection(db,'log_kerja')), { tanggal:tgl, bulan:tgl.slice(0,7), pekerja_id:pekId, pekerja_nama:pek?.nama||'', batch_id:w.batch_id, batch_kode:w.batch_kode, golongan:w.golongan, alur_urutan:w.urutan, nama_tahap:w.nama_tahap, jenis_pekerjaan:peran, warna_id:warnaId, warna_nama:warnaNama, jumlah_kodi:kodi, created_by:currentUser.uid, created_at:serverTimestamp() });
+    const b=(await getDoc(doc(db,'batch',batchId))).data();
+    const stokRef=doc(db,'stok',pid); const sd=await getDoc(stokRef);
+    const before=sd.exists()?(sd.data().stok_rumah||0):0;
+    const p=(await getDoc(doc(db,'produk',pid))).data();
+    const wb=writeBatch(db);
+    wb.set(stokRef, { stok_rumah:before+kodi, updated_at:serverTimestamp() }, {merge:true});
+    wb.set(doc(collection(db,'stok_log')), { produk_id:pid, produk_nama:p?.nama||'', jenis:'produksi_masuk', jumlah_kodi:kodi, jumlah_input:kodi, satuan_input:'kodi', stok_rumah_sebelum:before, stok_rumah_sesudah:before+kodi, referensi_id:batchId, catatan:'Hasil produksi batch '+(b?.kode||''), created_by:currentUser.uid, created_by_nama:currentUserData?.nama||'-', created_at:serverTimestamp() });
+    applyGerak(wb, batchId, 'selesai', null, kodi);
     await wb.commit();
-    toast('Tercatat: '+kodi+' kodi '+w.nama_tahap+' ✅','success');
-    closeHostModal();
-    if($('page-papan').classList.contains('active')) loadPapan();
-    if($('page-batch').classList.contains('active')) loadBatchList();
-  } catch(e){ toast('Gagal: '+e.message,'error'); $('lg-save').disabled=false; }
+    toast(kodi+' kodi masuk stok Grosir ✅','success'); closeHostModal(); loadBatchList();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('gr-save').disabled=false; }
 };
-
-async function loadPapan(){
-  const tgl=$('papan-date').value||todayStr();
-  const snap = await getDocs(query(collection(db,'log_kerja'), where('tanggal','==',tgl)));
-  const logs = snap.docs.map(d=>({id:d.id,...d.data()}));
-  const el=$('papan-list');
-  if(!logs.length){ el.innerHTML='<div class="empty"><div class="ico">📋</div>Belum ada hasil dicatat untuk tanggal ini</div>'; return; }
-  // group by pekerja
-  const byPek={}; logs.forEach(l=>{ (byPek[l.pekerja_nama]=byPek[l.pekerja_nama]||[]).push(l); });
-  const totalAll = logs.reduce((s,l)=>s+(l.jumlah_kodi||0),0);
-  el.innerHTML = `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">Total hari ini: <b>${totalAll} kodi</b> dari ${logs.length} entri</div>` +
-   Object.keys(byPek).map(nm=>{
-    const rows=byPek[nm]; const tot=rows.reduce((s,l)=>s+(l.jumlah_kodi||0),0);
-    return `<div class="card" style="box-shadow:none;border:1px solid var(--border);">
-      <div class="card-title"><span>👷 ${esc(nm)}</span><span class="badge badge-blue">${tot} kodi</span></div>
-      <div class="table-wrap"><table><thead><tr><th>Batch</th><th>Tahap</th><th>Peran</th><th>Warna</th><th>Kodi</th><th></th></tr></thead><tbody>${
-        rows.map(l=>`<tr><td>${esc(l.batch_kode||'-')}</td><td>${esc(l.nama_tahap)}</td><td><span class="badge badge-gray">${esc(l.jenis_pekerjaan)}</span></td><td>${esc(l.warna_nama||'-')}</td><td><b>${l.jumlah_kodi}</b></td><td><button class="btn btn-danger btn-sm" onclick="delLog('${l.id}')" title="Hapus entri (tidak mengembalikan WIP)">✕</button></td></tr>`).join('')
-      }</tbody></table></div></div>`;
-  }).join('');
-}
-window.delLog = async (id) => { if(!confirm('Hapus entri log ini? (posisi WIP tidak otomatis dikembalikan)')) return; await deleteDoc(doc(db,'log_kerja',id)); toast('Entri dihapus'); loadPapan(); };
 
 // ===== HASIL PEKERJA =====
 async function loadPekerjaRekap(){
-  const from=$('rekap-from').value, to=$('rekap-to').value;
-  if(!from||!to) return;
-  const snap = await getDocs(query(collection(db,'log_kerja'), where('tanggal','>=',from), where('tanggal','<=',to)));
-  const logs = snap.docs.map(d=>d.data());
-  const byPek={}; logs.forEach(l=>{ const k=l.pekerja_id||l.pekerja_nama; (byPek[k]=byPek[k]||{nama:l.pekerja_nama,total:0,dates:{}}); byPek[k].total+=l.jumlah_kodi||0; byPek[k].dates[l.tanggal]=(byPek[k].dates[l.tanggal]||0)+(l.jumlah_kodi||0); });
-  const days = Math.max(1, Math.round((new Date(to)-new Date(from))/86400000)+1);
-  // include all pekerja, even with 0
-  M.pekerja.forEach(p=>{ if(!byPek[p.id]) byPek[p.id]={nama:p.nama,total:0,dates:{}}; });
-  const rows = Object.keys(byPek).map(k=>{ const r=byPek[k]; const pek=M.pekerja.find(p=>p.id===k||p.nama===r.nama); return {...r, pek}; }).sort((a,b)=>b.total-a.total);
-  $('pekerja-rekap-list').innerHTML = `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">${from} → ${to} (${days} hari)</div><div class="table-wrap"><table><thead><tr><th>Pekerja</th><th>Total Kodi</th><th>Rata/hari</th><th>Target</th><th>Status</th></tr></thead><tbody>${
-    rows.map(r=>{
-      const avg=(r.total/days);
-      const tgt=r.pek?.target_kodi; const wajib=r.pek?.target_wajib;
-      let status='<span class="muted">—</span>';
-      if(tgt&&wajib){ status = avg>=tgt? '<span class="badge badge-green">Tercapai</span>' : '<span class="badge badge-red">Kurang</span>'; }
-      return `<tr><td><b>${esc(r.nama)}</b> ${r.pek?.peran_utama?`<span class="muted" style="font-size:11px;">${esc(r.pek.peran_utama)}</span>`:''}</td><td><b>${r.total}</b></td><td>${avg.toFixed(1)}</td><td>${tgt?tgt+' kodi':'-'}</td><td>${status}</td></tr>`;
+  const from=$('rekap-from').value, to=$('rekap-to').value; if(!from||!to) return;
+  const snap=await getDocs(query(collection(db,'gerak'), where('tanggal','>=',from), where('tanggal','<=',to)));
+  const gks=snap.docs.map(d=>d.data());
+  const byPek={}; gks.forEach(g=>{ if(!g.pekerja_id) return; (byPek[g.pekerja_id]=byPek[g.pekerja_id]||{nama:g.pekerja_nama,total:0,cat:{}}); byPek[g.pekerja_id].total+=g.jumlah_kodi||0; byPek[g.pekerja_id].cat[g.cat]=(byPek[g.pekerja_id].cat[g.cat]||0)+(g.jumlah_kodi||0); });
+  M.pekerja.forEach(p=>{ if(!byPek[p.id]) byPek[p.id]={nama:p.nama,total:0,cat:{}}; });
+  const days=Math.max(1, Math.round((new Date(to)-new Date(from))/86400000)+1);
+  const rows=Object.keys(byPek).map(k=>({...byPek[k], pek:M.pekerja.find(p=>p.id===k)})).sort((a,b)=>b.total-a.total);
+  $('pekerja-rekap-list').innerHTML = `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">${from} → ${to} (${days} hari)</div><div class="table-wrap"><table><thead><tr><th>Pekerja</th><th>Total</th><th>Obat</th><th>Rata/hari</th><th>Target</th><th>Status</th></tr></thead><tbody>${
+    rows.map(r=>{ const avg=r.total/days; const tgt=r.pek?.target_kodi, wajib=r.pek?.target_wajib;
+      const obat=r.cat.obat||0;
+      let st='<span class="muted">—</span>'; if(tgt&&wajib){ st = (obat/days)>=tgt? '<span class="badge badge-green">Tercapai</span>':'<span class="badge badge-red">Kurang</span>'; }
+      return `<tr><td><b>${esc(r.nama)}</b> ${r.pek?.peran_utama?`<span class="muted" style="font-size:11px;">${esc(r.pek.peran_utama)}</span>`:''}</td><td><b>${(+r.total.toFixed(1))}</b></td><td>${(+obat.toFixed(1))}</td><td>${avg.toFixed(1)}</td><td>${tgt?tgt+' kodi':'-'}</td><td>${st}</td></tr>`;
     }).join('')
   }</tbody></table></div>`;
 }
 
-// ===== STOK OBAT (pengambilan: stok lama/baru, sisa otomatis) =====
+// ===== STOK OBAT (pengambilan) =====
 function obatStats(b){
-  const total_ambil = M.pengambilan.filter(p=>p.bahan_id===b.id).reduce((s,p)=>s+(p.jumlah||0),0);
+  const total_ambil=M.pengambilan.filter(p=>p.bahan_id===b.id).reduce((s,p)=>s+(p.jumlah||0),0);
   const lama=b.stok_lama||0, baru=b.stok_baru||0;
-  const sisa_lama=Math.max(0, lama-total_ambil);
-  const sisa_baru=Math.max(0, baru-Math.max(0, total_ambil-lama));
+  const sisa_lama=Math.max(0,lama-total_ambil);
+  const sisa_baru=Math.max(0,baru-Math.max(0,total_ambil-lama));
   return { total_awal:lama+baru, total_ambil, sisa_lama, sisa_baru, stok_akhir:sisa_lama+sisa_baru };
+}
+function updateBahanBadge(){
+  const low=M.bahan.filter(b=>{ const s=obatStats(b); return s.stok_akhir<=(b.stok_minimum||0)&&(b.stok_minimum||0)>0; }).length;
+  const badge=$('bahan-badge'); if(!badge) return;
+  if(low>0){ badge.textContent=low; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
 }
 async function loadBahan(){
   await loadAllMaster();
   const el=$('bahan-list');
-  if(!M.bahan.length){ el.innerHTML='<div class="empty"><div class="ico">🧪</div>Belum ada obat. Klik "+ Obat" atau isi data awal di Master Data.</div>'; return; }
+  if(!M.bahan.length){ el.innerHTML='<div class="empty"><div class="ico">🧪</div>Belum ada obat. Klik "+ Obat" atau isi data awal.</div>'; return; }
   const bahan=[...M.bahan].sort((a,b)=>a.nama.localeCompare(b.nama));
-  el.innerHTML = `<table><thead><tr><th>Obat</th><th>Stok Awal</th><th>Total</th><th>Diambil</th><th>Sisa (Lama / Baru)</th><th>Stok Akhir</th><th></th></tr></thead><tbody>${
-    bahan.map(b=>{
-      const s=obatStats(b); const sat=b.satuan?(' '+esc(b.satuan)):'';
-      const low=s.stok_akhir<=(b.stok_minimum||0)&&(b.stok_minimum||0)>0;
-      return `<tr>
-        <td><b>${esc(b.nama)}</b>${b.stok_minimum?`<div class="muted" style="font-size:11px;">min ${b.stok_minimum}</div>`:''}</td>
+  el.innerHTML=`<table><thead><tr><th>Obat</th><th>Stok Awal</th><th>Total</th><th>Diambil</th><th>Sisa (Lama/Baru)</th><th>Stok Akhir</th><th></th></tr></thead><tbody>${
+    bahan.map(b=>{ const s=obatStats(b); const sat=b.satuan?(' '+esc(b.satuan)):''; const low=s.stok_akhir<=(b.stok_minimum||0)&&(b.stok_minimum||0)>0;
+      return `<tr><td><b>${esc(b.nama)}</b>${b.stok_minimum?`<div class="muted" style="font-size:11px;">min ${b.stok_minimum}</div>`:''}</td>
         <td><span class="badge badge-gray">Lama ${b.stok_lama||0}</span> <span class="badge badge-blue">Baru ${b.stok_baru||0}</span></td>
-        <td>${s.total_awal}${sat}</td>
-        <td>${s.total_ambil?('<b>'+s.total_ambil+'</b>'+sat):'<span class="muted">-</span>'}</td>
+        <td>${s.total_awal}${sat}</td><td>${s.total_ambil?('<b>'+s.total_ambil+'</b>'+sat):'<span class="muted">-</span>'}</td>
         <td><span class="badge ${s.sisa_lama?'badge-amber':'badge-gray'}">Lama ${s.sisa_lama}</span> <span class="badge badge-blue">Baru ${s.sisa_baru}</span></td>
         <td><b style="${low?'color:var(--red-text)':''}">${s.stok_akhir}${sat}</b>${low?' <span class="badge badge-red">menipis</span>':''}</td>
-        <td style="white-space:nowrap;"><button class="btn btn-primary btn-sm" onclick="openAmbilModal('${b.id}')">− Ambil</button> <button class="btn btn-outline btn-sm" onclick="openRiwayatObat('${b.id}')">Riwayat</button> <button class="btn btn-outline btn-sm" onclick="openEditObat('${b.id}')">⚙</button></td>
-      </tr>`;
+        <td style="white-space:nowrap;"><button class="btn btn-primary btn-sm" onclick="openAmbilModal('${b.id}')">− Ambil</button> <button class="btn btn-outline btn-sm" onclick="openRiwayatObat('${b.id}')">Riwayat</button> <button class="btn btn-outline btn-sm" onclick="openEditObat('${b.id}')">⚙</button></td></tr>`;
     }).join('')
-  }</tbody></table>
-  <div class="muted" style="font-size:12px;margin-top:10px;">Pengambilan mengurangi <b>stok lama</b> dulu, lalu <b>stok baru</b>. Saat ada kiriman baru, buka ⚙ → "Stok Baru Masuk" agar sisa sekarang menjadi stok lama.</div>`;
+  }</tbody></table><div class="muted" style="font-size:12px;margin-top:10px;">Pengambilan mengurangi <b>stok lama</b> dulu, lalu <b>stok baru</b>. Kiriman baru: ⚙ → "Stok Baru Masuk".</div>`;
 }
 window.openBahanModal = () => {
   showModal('Tambah Obat', `
-    <div class="form-group"><label class="form-label">Nama Obat</label><input class="form-control" id="bh-nama" /></div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">Stok Lama</label><input type="number" step="0.5" class="form-control" id="bh-lama" value="0" /></div>
-      <div class="form-group"><label class="form-label">Stok Baru</label><input type="number" step="0.5" class="form-control" id="bh-baru" value="0" /></div>
-    </div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">Satuan (opsional)</label><input class="form-control" id="bh-satuan" placeholder="kg / bungkus" /></div>
-      <div class="form-group"><label class="form-label">Stok Minimum</label><input type="number" step="0.5" class="form-control" id="bh-min" value="0" /></div>
-    </div>
+    <div class="form-group"><label class="form-label">Nama Obat</label><input class="form-control" id="bh-nama"></div>
+    <div class="grid-2"><div class="form-group"><label class="form-label">Stok Lama</label><input type="number" step="0.5" class="form-control" id="bh-lama" value="0"></div>
+    <div class="form-group"><label class="form-label">Stok Baru</label><input type="number" step="0.5" class="form-control" id="bh-baru" value="0"></div></div>
+    <div class="grid-2"><div class="form-group"><label class="form-label">Satuan (opsional)</label><input class="form-control" id="bh-satuan" placeholder="kg / bungkus"></div>
+    <div class="form-group"><label class="form-label">Stok Minimum</label><input type="number" step="0.5" class="form-control" id="bh-min" value="0"></div></div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveBahan()">Simpan</button>`);
 };
-window.saveBahan = async () => {
-  const nama=$('bh-nama').value.trim(); if(!nama){ toast('Isi nama','error'); return; }
-  await addDoc(collection(db,'bahan_baku'), { nama, satuan:$('bh-satuan').value.trim(), stok_lama:parseFloat($('bh-lama').value)||0, stok_baru:parseFloat($('bh-baru').value)||0, stok_minimum:parseFloat($('bh-min').value)||0 });
+window.saveBahan = async () => { const nama=$('bh-nama').value.trim(); if(!nama){ toast('Isi nama','error'); return; }
+  await addDoc(collection(db,'bahan_baku'), { nama, satuan:$('bh-satuan').value.trim(), stok_lama:num($('bh-lama').value), stok_baru:num($('bh-baru').value), stok_minimum:num($('bh-min').value) });
   toast('Obat ditambah','success'); closeHostModal(); loadBahan();
 };
-window.openEditObat = (id) => {
-  const b=M.bahan.find(x=>x.id===id); if(!b) return;
-  const sisa=obatStats(b).stok_akhir;
+window.openEditObat = (id) => { const b=M.bahan.find(x=>x.id===id); if(!b) return; const sisa=obatStats(b).stok_akhir;
   showModal('Edit Obat — '+b.nama, `
-    <div class="form-group"><label class="form-label">Nama</label><input class="form-control" id="eo-nama" value="${esc(b.nama)}" /></div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">Stok Lama</label><input type="number" step="0.5" class="form-control" id="eo-lama" value="${b.stok_lama||0}" /></div>
-      <div class="form-group"><label class="form-label">Stok Baru</label><input type="number" step="0.5" class="form-control" id="eo-baru" value="${b.stok_baru||0}" /></div>
-    </div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">Satuan</label><input class="form-control" id="eo-satuan" value="${esc(b.satuan||'')}" /></div>
-      <div class="form-group"><label class="form-label">Stok Minimum</label><input type="number" step="0.5" class="form-control" id="eo-min" value="${b.stok_minimum||0}" /></div>
-    </div>
-    <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;">
-      <div class="muted" style="font-size:12px;margin-bottom:8px;">Stok baru masuk: sisa sekarang (<b>${sisa}</b>) jadi stok lama, riwayat pengambilan obat ini direset.</div>
-      <div class="row-flex"><input type="number" step="0.5" class="form-control" id="eo-restok" placeholder="jumlah stok baru" style="flex:1;" /><button class="btn btn-outline" type="button" onclick="restokObat('${id}')">Stok Baru Masuk</button></div>
-    </div>
+    <div class="form-group"><label class="form-label">Nama</label><input class="form-control" id="eo-nama" value="${esc(b.nama)}"></div>
+    <div class="grid-2"><div class="form-group"><label class="form-label">Stok Lama</label><input type="number" step="0.5" class="form-control" id="eo-lama" value="${b.stok_lama||0}"></div>
+    <div class="form-group"><label class="form-label">Stok Baru</label><input type="number" step="0.5" class="form-control" id="eo-baru" value="${b.stok_baru||0}"></div></div>
+    <div class="grid-2"><div class="form-group"><label class="form-label">Satuan</label><input class="form-control" id="eo-satuan" value="${esc(b.satuan||'')}"></div>
+    <div class="form-group"><label class="form-label">Stok Minimum</label><input type="number" step="0.5" class="form-control" id="eo-min" value="${b.stok_minimum||0}"></div></div>
+    <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;"><div class="muted" style="font-size:12px;margin-bottom:8px;">Stok baru masuk: sisa sekarang (<b>${sisa}</b>) jadi stok lama, riwayat direset.</div>
+    <div class="row-flex"><input type="number" step="0.5" class="form-control" id="eo-restok" placeholder="jumlah stok baru" style="flex:1;"><button class="btn btn-outline" type="button" onclick="restokObat('${id}')">Stok Baru Masuk</button></div></div>
   `, `<button class="btn btn-danger" onclick="delObat('${id}')">Hapus</button><button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveEditObat('${id}')">Simpan</button>`);
 };
-window.saveEditObat = async (id) => {
-  const nama=$('eo-nama').value.trim(); if(!nama){ toast('Isi nama','error'); return; }
-  await updateDoc(doc(db,'bahan_baku',id), { nama, satuan:$('eo-satuan').value.trim(), stok_lama:parseFloat($('eo-lama').value)||0, stok_baru:parseFloat($('eo-baru').value)||0, stok_minimum:parseFloat($('eo-min').value)||0 });
+window.saveEditObat = async (id) => { const nama=$('eo-nama').value.trim(); if(!nama){ toast('Isi nama','error'); return; }
+  await updateDoc(doc(db,'bahan_baku',id), { nama, satuan:$('eo-satuan').value.trim(), stok_lama:num($('eo-lama').value), stok_baru:num($('eo-baru').value), stok_minimum:num($('eo-min').value) });
   toast('Tersimpan','success'); closeHostModal(); loadBahan();
 };
-window.delObat = async (id) => {
-  if(!confirm('Hapus obat ini beserta riwayat pengambilannya?')) return;
-  const ps=M.pengambilan.filter(p=>p.bahan_id===id);
-  const wb=writeBatch(db); ps.forEach(p=>wb.delete(doc(db,'pengambilan_obat',p.id))); wb.delete(doc(db,'bahan_baku',id));
+window.delObat = async (id) => { if(!confirm('Hapus obat ini beserta riwayatnya?')) return;
+  const ps=M.pengambilan.filter(p=>p.bahan_id===id); const wb=writeBatch(db); ps.forEach(p=>wb.delete(doc(db,'pengambilan_obat',p.id))); wb.delete(doc(db,'bahan_baku',id));
   await wb.commit(); toast('Dihapus'); closeHostModal(); loadBahan();
 };
-window.restokObat = async (id) => {
-  const b=M.bahan.find(x=>x.id===id); if(!b) return;
-  const jml=parseFloat($('eo-restok').value)||0;
-  if(jml<=0){ toast('Isi jumlah stok baru','error'); return; }
-  const sisa=obatStats(b).stok_akhir;
-  if(!confirm(`Stok baru masuk ${jml}? Sisa sekarang (${sisa}) jadi stok lama & riwayat pengambilan obat ini direset.`)) return;
-  const ps=M.pengambilan.filter(p=>p.bahan_id===id);
-  const wb=writeBatch(db);
-  ps.forEach(p=>wb.delete(doc(db,'pengambilan_obat',p.id)));
-  wb.update(doc(db,'bahan_baku',id), { stok_lama:sisa, stok_baru:jml });
-  await wb.commit(); toast('Stok diperbarui ✅','success'); closeHostModal(); loadBahan();
+window.restokObat = async (id) => { const b=M.bahan.find(x=>x.id===id); if(!b) return; const jml=num($('eo-restok').value);
+  if(jml<=0){ toast('Isi jumlah','error'); return; } const sisa=obatStats(b).stok_akhir;
+  if(!confirm(`Stok baru masuk ${jml}? Sisa (${sisa}) jadi stok lama & riwayat direset.`)) return;
+  const ps=M.pengambilan.filter(p=>p.bahan_id===id); const wb=writeBatch(db); ps.forEach(p=>wb.delete(doc(db,'pengambilan_obat',p.id)));
+  wb.update(doc(db,'bahan_baku',id), { stok_lama:sisa, stok_baru:jml }); await wb.commit(); toast('Stok diperbarui ✅','success'); closeHostModal(); loadBahan();
 };
-window.openAmbilModal = (preId) => {
-  if(!M.bahan.length){ toast('Belum ada obat','error'); return; }
+window.openAmbilModal = (preId) => { if(!M.bahan.length){ toast('Belum ada obat','error'); return; }
   const opts=[...M.bahan].sort((a,b)=>a.nama.localeCompare(b.nama)).map(b=>{ const s=obatStats(b); return `<option value="${b.id}" ${b.id===preId?'selected':''}>${esc(b.nama)} (sisa ${s.stok_akhir})</option>`; }).join('');
-  showModal('Ambil Obat', `
-    <div class="form-group"><label class="form-label">Obat</label><select class="form-control" id="am-bahan">${opts}</select></div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">Jumlah Diambil</label><input type="number" step="0.5" min="0" class="form-control" id="am-jml" /></div>
-      <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="am-tgl" value="${todayStr()}" /></div>
-    </div>
-    <div class="form-group"><label class="form-label">Catatan (opsional)</label><input class="form-control" id="am-cat" placeholder="mis. untuk warna biru" /></div>
+  showModal('Ambil Obat', `<div class="form-group"><label class="form-label">Obat</label><select class="form-control" id="am-bahan">${opts}</select></div>
+    <div class="grid-2"><div class="form-group"><label class="form-label">Jumlah Diambil</label><input type="number" step="0.5" min="0" class="form-control" id="am-jml"></div>
+    <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="am-tgl" value="${todayStr()}"></div></div>
+    <div class="form-group"><label class="form-label">Catatan (opsional)</label><input class="form-control" id="am-cat" placeholder="mis. untuk warna biru"></div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveAmbil()">Simpan Pengambilan</button>`);
 };
-window.saveAmbil = async () => {
-  const id=$('am-bahan').value, jml=parseFloat($('am-jml').value)||0, tgl=$('am-tgl').value;
-  if(!id||jml<=0){ toast('Isi jumlah','error'); return; }
-  const b=M.bahan.find(x=>x.id===id);
+window.saveAmbil = async () => { const id=$('am-bahan').value, jml=num($('am-jml').value), tgl=$('am-tgl').value;
+  if(!id||jml<=0){ toast('Isi jumlah','error'); return; } const b=M.bahan.find(x=>x.id===id);
   await addDoc(collection(db,'pengambilan_obat'), { bahan_id:id, bahan_nama:b?.nama||'', jumlah:jml, tanggal:tgl, catatan:$('am-cat').value.trim(), created_by:currentUser.uid, created_at:serverTimestamp() });
   toast(jml+' '+(b?.nama||'obat')+' diambil ✅','success'); closeHostModal(); loadBahan();
 };
-window.openRiwayatObat = (id) => {
-  const b=M.bahan.find(x=>x.id===id); if(!b) return;
-  const ps=M.pengambilan.filter(p=>p.bahan_id===id).sort((a,b)=>(b.tanggal||'').localeCompare(a.tanggal||''));
-  const s=obatStats(b);
-  showModal('Riwayat — '+b.nama, `
-    <div class="muted" style="font-size:12.5px;margin-bottom:10px;">Total awal <b>${s.total_awal}</b> · Diambil <b>${s.total_ambil}</b> · Sisa <b>${s.stok_akhir}</b></div>
-    ${ps.length? `<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Jumlah</th><th>Catatan</th><th></th></tr></thead><tbody>${ps.map(p=>`<tr><td>${esc(p.tanggal||'-')}</td><td><b>${p.jumlah}</b></td><td>${esc(p.catatan||'')}</td><td><button class="btn btn-danger btn-sm" onclick="delAmbil('${p.id}','${id}')">✕</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Belum ada pengambilan</div>'}
+window.openRiwayatObat = (id) => { const b=M.bahan.find(x=>x.id===id); if(!b) return;
+  const ps=M.pengambilan.filter(p=>p.bahan_id===id).sort((a,b)=>(b.tanggal||'').localeCompare(a.tanggal||'')); const s=obatStats(b);
+  showModal('Riwayat — '+b.nama, `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">Total awal <b>${s.total_awal}</b> · Diambil <b>${s.total_ambil}</b> · Sisa <b>${s.stok_akhir}</b></div>
+    ${ps.length?`<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Jumlah</th><th>Catatan</th><th></th></tr></thead><tbody>${ps.map(p=>`<tr><td>${esc(p.tanggal||'-')}</td><td><b>${p.jumlah}</b></td><td>${esc(p.catatan||'')}</td><td><button class="btn btn-danger btn-sm" onclick="delAmbil('${p.id}','${id}')">✕</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Belum ada pengambilan</div>'}
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button><button class="btn btn-primary" onclick="openAmbilModal('${id}')">+ Ambil</button>`);
 };
 window.delAmbil = async (pid,bid) => { if(!confirm('Hapus catatan pengambilan ini?')) return; await deleteDoc(doc(db,'pengambilan_obat',pid)); await loadBahan(); openRiwayatObat(bid); toast('Dihapus'); };
 
 // ===== HPP =====
 function loadHpp(){
-  const c = M.config || {};
-  const f = c.hpp_tetap || {kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900};
-  $('hpp-config').innerHTML = `<div class="table-wrap"><table><tbody>
-    <tr><td>Kain (mori)</td><td style="text-align:right">${rp(f.kain)}</td></tr>
-    <tr><td>Ngecap</td><td style="text-align:right">${rp(f.ngecap)}</td></tr>
-    <tr><td>Batik</td><td style="text-align:right">${rp(f.batik)}</td></tr>
-    <tr><td>Tenaga Obat</td><td style="text-align:right">${rp(f.obat_tk)}</td></tr>
-    <tr><td>Lainnya (lilin, solda, dll)</td><td style="text-align:right">${rp(f.lainnya)}</td></tr>
-    <tr style="font-weight:800"><td>Subtotal Tetap</td><td style="text-align:right">${rp(f.kain+f.ngecap+f.batik+f.obat_tk+f.lainnya)}</td></tr>
-  </tbody></table></div>`;
-  const tetap = f.kain+f.ngecap+f.batik+f.obat_tk+f.lainnya;
-  const biaya = (c.biaya_obat_warna)||{};
-  const poman = M.warna.filter(w=>w.golongan==='poman');
-  $('hpp-table').innerHTML = poman.length ? `<table><thead><tr><th>Warna</th><th>Obat/Kodi</th><th>HPP/Kodi</th><th>≈ /Lembar</th></tr></thead><tbody>${
+  const c=M.config||{}; const f=c.hpp_tetap||{kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900};
+  $('hpp-config').innerHTML=`<div class="table-wrap"><table><tbody>
+    <tr><td>Kain (mori)</td><td style="text-align:right">${rp(f.kain)}</td></tr><tr><td>Ngecap</td><td style="text-align:right">${rp(f.ngecap)}</td></tr>
+    <tr><td>Batik</td><td style="text-align:right">${rp(f.batik)}</td></tr><tr><td>Tenaga Obat</td><td style="text-align:right">${rp(f.obat_tk)}</td></tr>
+    <tr><td>Lainnya</td><td style="text-align:right">${rp(f.lainnya)}</td></tr>
+    <tr style="font-weight:800"><td>Subtotal Tetap</td><td style="text-align:right">${rp(f.kain+f.ngecap+f.batik+f.obat_tk+f.lainnya)}</td></tr></tbody></table></div>`;
+  const tetap=f.kain+f.ngecap+f.batik+f.obat_tk+f.lainnya; const biaya=c.biaya_obat_warna||{};
+  const poman=M.warna.filter(w=>w.golongan==='poman');
+  $('hpp-table').innerHTML= poman.length? `<table><thead><tr><th>Warna</th><th>Obat/Kodi</th><th>HPP/Kodi</th><th>≈ /Lembar</th></tr></thead><tbody>${
     poman.map(w=>{ const ob=biaya[w.nama]||0; const hpp=tetap+ob; return `<tr><td><b>${esc(w.nama)}</b></td><td style="text-align:right">${rp(ob)}</td><td style="text-align:right"><b>${rp(hpp)}</b></td><td style="text-align:right">${rp(hpp/20)}</td></tr>`; }).join('')
-  }</tbody></table>` : '<div class="empty">Isi data awal dulu</div>';
+  }</tbody></table>`:'<div class="empty">Isi data awal dulu</div>';
 }
-window.openHppConfigModal = () => {
-  const f = M.config?.hpp_tetap || {kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900};
-  showModal('Ubah Komponen Biaya Tetap', `
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">Kain</label><input type="number" class="form-control" id="hc-kain" value="${f.kain}"></div>
-      <div class="form-group"><label class="form-label">Ngecap</label><input type="number" class="form-control" id="hc-ngecap" value="${f.ngecap}"></div>
-      <div class="form-group"><label class="form-label">Batik</label><input type="number" class="form-control" id="hc-batik" value="${f.batik}"></div>
-      <div class="form-group"><label class="form-label">Tenaga Obat</label><input type="number" class="form-control" id="hc-obat" value="${f.obat_tk}"></div>
-      <div class="form-group"><label class="form-label">Lainnya</label><input type="number" class="form-control" id="hc-lain" value="${f.lainnya}"></div>
-    </div>`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveHppConfig()">Simpan</button>`);
+window.openHppConfigModal = () => { const f=M.config?.hpp_tetap||{kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900};
+  showModal('Ubah Biaya Tetap', `<div class="grid-2">
+    <div class="form-group"><label class="form-label">Kain</label><input type="number" class="form-control" id="hc-kain" value="${f.kain}"></div>
+    <div class="form-group"><label class="form-label">Ngecap</label><input type="number" class="form-control" id="hc-ngecap" value="${f.ngecap}"></div>
+    <div class="form-group"><label class="form-label">Batik</label><input type="number" class="form-control" id="hc-batik" value="${f.batik}"></div>
+    <div class="form-group"><label class="form-label">Tenaga Obat</label><input type="number" class="form-control" id="hc-obat" value="${f.obat_tk}"></div>
+    <div class="form-group"><label class="form-label">Lainnya</label><input type="number" class="form-control" id="hc-lain" value="${f.lainnya}"></div></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveHppConfig()">Simpan</button>`);
 };
-window.saveHppConfig = async () => {
-  const hpp_tetap = { kain:+$('hc-kain').value||0, ngecap:+$('hc-ngecap').value||0, batik:+$('hc-batik').value||0, obat_tk:+$('hc-obat').value||0, lainnya:+$('hc-lain').value||0 };
-  await setDoc(doc(db,'config_produksi','hpp'), { ...(M.config||{}), hpp_tetap }, {merge:true});
-  M.config = {...(M.config||{}), hpp_tetap};
-  toast('Tersimpan','success'); closeHostModal(); loadHpp();
+window.saveHppConfig = async () => { const hpp_tetap={ kain:num($('hc-kain').value), ngecap:num($('hc-ngecap').value), batik:num($('hc-batik').value), obat_tk:num($('hc-obat').value), lainnya:num($('hc-lain').value) };
+  await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), hpp_tetap}, {merge:true}); M.config={...(M.config||{}), hpp_tetap}; toast('Tersimpan','success'); closeHostModal(); loadHpp();
 };
 
-// ===== GROSIR INTEGRATION =====
-window.openGrosirModal = async (batchId) => {
-  const b = (await getDoc(doc(db,'batch',batchId))).data();
-  const psnap = await getDocs(query(collection(db,'produk'), where('aktif','==',true)));
-  const produk = psnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.nama.localeCompare(b.nama));
-  const opts = produk.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
-  showModal('Kirim ke Stok Grosir', `
-    <p class="muted" style="font-size:13px;margin-bottom:12px;">Batch <b>${esc(b.kode)}</b> punya <b>${b.total_selesai||0} kodi</b> selesai. Pilih produk Grosir tujuan dan jumlah kodi yang masuk ke stok rumah.</p>
-    <div class="form-group"><label class="form-label">Produk Grosir</label><select class="form-control" id="gr-produk">${opts||'<option value="">(belum ada produk grosir)</option>'}</select></div>
-    <div class="form-group"><label class="form-label">Jumlah Kodi Masuk</label><input type="number" step="0.5" class="form-control" id="gr-kodi" value="${b.total_selesai||0}"></div>
-  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="gr-save" onclick="saveGrosir('${batchId}')">Kirim</button>`);
-};
-window.saveGrosir = async (batchId) => {
-  const pid=$('gr-produk').value, kodi=parseFloat($('gr-kodi').value)||0;
-  if(!pid||kodi<=0){ toast('Pilih produk & jumlah','error'); return; }
-  $('gr-save').disabled=true;
-  try {
-    const stokRef=doc(db,'stok',pid); const stokDoc=await getDoc(stokRef);
-    const before = stokDoc.exists()? (stokDoc.data().stok_rumah||0) : 0;
-    const p = (await getDoc(doc(db,'produk',pid))).data();
-    const wb=writeBatch(db);
-    wb.set(stokRef, { stok_rumah: before+kodi, updated_at:serverTimestamp() }, {merge:true});
-    wb.set(doc(collection(db,'stok_log')), { produk_id:pid, produk_nama:p?.nama||'', jenis:'produksi_masuk', jumlah_kodi:kodi, jumlah_input:kodi, satuan_input:'kodi', stok_rumah_sebelum:before, stok_rumah_sesudah:before+kodi, referensi_id:batchId, catatan:'Hasil produksi batch', created_by:currentUser.uid, created_by_nama:currentUserData?.nama||'-', created_at:serverTimestamp() });
-    wb.update(doc(db,'batch',batchId), { total_selesai: increment(-kodi), dikirim_grosir: increment(kodi) });
-    await wb.commit();
-    toast(kodi+' kodi masuk stok Grosir ✅','success'); closeHostModal(); loadBatchList();
-  } catch(e){ toast('Gagal: '+e.message,'error'); $('gr-save').disabled=false; }
-};
-
-// ===== MASTER DATA RENDER =====
+// ===== MASTER =====
 window.setMasterTab = t => { masterTab=t; document.querySelectorAll('#master-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.m===t)); renderMaster(); };
 function renderMaster(){
-  $('seed-card').style.display = M.golongan.length? 'none':'block';
+  $('seed-card').style.display=M.golongan.length?'none':'block';
   const el=$('master-content');
-  if(masterTab==='golongan') el.innerHTML = renderGolongan();
-  else if(masterTab==='warna') el.innerHTML = renderWarna();
-  else if(masterTab==='alur') el.innerHTML = renderAlur();
-  else if(masterTab==='pekerja') el.innerHTML = renderPekerja();
-  else if(masterTab==='racikan') el.innerHTML = renderRacikan();
-  else if(masterTab==='ambang') el.innerHTML = renderAmbang();
+  if(masterTab==='golongan') el.innerHTML=renderGolongan();
+  else if(masterTab==='warna') el.innerHTML=renderWarna();
+  else if(masterTab==='pekerja') el.innerHTML=renderPekerja();
+  else if(masterTab==='biaya') el.innerHTML=renderBiaya();
+  else if(masterTab==='ambang') el.innerHTML=renderAmbang();
 }
 function renderGolongan(){
-  return `<div class="card"><div class="card-title">Golongan & Tipe <button class="btn btn-outline btn-sm" onclick="openTipeModal()">+ Tipe</button></div>` +
-    M.golongan.map(g=>`<div style="margin-bottom:10px;"><b>${esc(g.nama)}</b><div class="row-flex" style="margin-top:6px;">${M.tipe.filter(t=>t.golongan===g.id).map(t=>`<span class="chip">${esc(t.nama)} <span style="cursor:pointer;color:var(--red-text);" onclick="delDoc('tipe_produk','${t.id}')">✕</span></span>`).join('')||'<span class="muted" style="font-size:12px;">belum ada tipe</span>'}</div></div>`).join('') + `</div>`;
+  return `<div class="card"><div class="card-title">Golongan & Tipe <button class="btn btn-outline btn-sm" onclick="openTipeModal()">+ Tipe</button></div>`+
+    M.golongan.map(g=>`<div style="margin-bottom:10px;"><b>${esc(g.nama)}</b><div class="row-flex" style="margin-top:6px;">${M.tipe.filter(t=>t.golongan===g.id).map(t=>`<span class="chip">${esc(t.nama)} <span style="cursor:pointer;color:var(--red-text);" onclick="delDoc('tipe_produk','${t.id}')">✕</span></span>`).join('')||'<span class="muted" style="font-size:12px;">belum ada tipe</span>'}</div></div>`).join('')+`</div>`;
 }
-window.openTipeModal = () => {
-  showModal('Tambah Tipe', `<div class="form-group"><label class="form-label">Golongan</label><select class="form-control" id="tp-gol">${M.golongan.map(g=>`<option value="${g.id}">${esc(g.nama)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Nama Tipe</label><input class="form-control" id="tp-nama" placeholder="Tapih / Sarung / Slendang"></div>`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveTipe()">Simpan</button>`);
-};
+window.openTipeModal = () => showModal('Tambah Tipe', `<div class="form-group"><label class="form-label">Golongan</label><select class="form-control" id="tp-gol">${M.golongan.map(g=>`<option value="${g.id}">${esc(g.nama)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Nama Tipe</label><input class="form-control" id="tp-nama" placeholder="Tapih / Sarung / Slendang"></div>`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveTipe()">Simpan</button>`);
 window.saveTipe = async () => { const nama=$('tp-nama').value.trim(); if(!nama) return toast('Isi nama','error'); await addDoc(collection(db,'tipe_produk'),{golongan:$('tp-gol').value,nama,panjang_mori:null}); await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal(); };
-
 function renderWarna(){
   return M.golongan.map(g=>`<div class="card"><div class="card-title"><span>${esc(g.nama)}</span><button class="btn btn-outline btn-sm" onclick="openWarnaModal('${g.id}')">+ Warna</button></div><div class="row-flex">${M.warna.filter(w=>w.golongan===g.id).map(w=>`<span class="chip">${esc(w.nama)} <span style="cursor:pointer;color:var(--red-text);" onclick="delDoc('warna','${w.id}')">✕</span></span>`).join('')||'<span class="muted" style="font-size:12px;">belum ada</span>'}</div></div>`).join('');
 }
-window.openWarnaModal = (gol) => { showModal('Tambah Warna', `<div class="form-group"><label class="form-label">Warna</label><input class="form-control" id="wn-nama"></div>`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveWarna('${gol}')">Simpan</button>`); };
+window.openWarnaModal = (gol) => showModal('Tambah Warna', `<div class="form-group"><label class="form-label">Warna</label><input class="form-control" id="wn-nama"></div>`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveWarna('${gol}')">Simpan</button>`);
 window.saveWarna = async (gol) => { const nama=$('wn-nama').value.trim(); if(!nama) return toast('Isi warna','error'); await addDoc(collection(db,'warna'),{golongan:gol,nama}); await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal(); };
-
-function renderAlur(){
-  return M.golongan.map(g=>{
-    const cabs = g.id==='poman'? ['A','B'] : [null];
-    return `<div class="card"><div class="card-title"><span>${esc(g.nama)}</span><button class="btn btn-outline btn-sm" onclick="openAlurModal('${g.id}')">+ Tahap</button></div>` +
-      cabs.map(cab=>{
-        const steps=alurSteps(g.id,cab);
-        return `<div style="margin-bottom:10px;">${cab?`<div class="muted" style="font-size:12px;font-weight:700;">Cabang ${cab} ${cab==='A'?'(selain putih/coklat)':'(putih/coklat)'}</div>`:''}
-          <div class="stage-flow" style="margin-top:6px;">${steps.map((s,i)=>`<span class="stage-pill">${s.urutan}. ${esc(s.nama_tahap)} <span class="muted">[${esc(s.jenis_pekerjaan)}${s.butuh_warna?' • warna':''}${s.only_warna?' • '+s.only_warna.join('/'):''}]</span> <span style="cursor:pointer;color:var(--text-muted);${i===0?'opacity:.25;pointer-events:none;':''}" title="Naik" onclick="moveAlur('${s.id}','up')">▲</span><span style="cursor:pointer;color:var(--text-muted);${i===steps.length-1?'opacity:.25;pointer-events:none;':''}" title="Turun" onclick="moveAlur('${s.id}','down')">▼</span> <span style="cursor:pointer;color:var(--primary);" title="Sisipkan setelah ini" onclick="openAlurModal('${g.id}','${cab||''}',${s.urutan+1})">＋</span> <span style="cursor:pointer;color:var(--red-text);" title="Hapus" onclick="delDoc('alur','${s.id}')">✕</span></span>`).join(' → ')||'<span class="muted" style="font-size:12px;">belum ada alur</span>'}</div></div>`;
-      }).join('') + `</div>`;
-  }).join('');
-}
-function alurPosOptions(gol, cab){
-  const steps=alurSteps(gol,cab);
-  let opts = `<option value="1">⬆ Paling awal (jadi tahap 1)</option>`;
-  steps.forEach(s=>{ opts += `<option value="${s.urutan+1}">Sisipkan setelah ${s.urutan}. ${esc(s.nama_tahap)}</option>`; });
-  return opts;
-}
-window.alurRebuildPos = (gol, presetUrut) => {
-  const cab = $('al-cab').value||null;
-  $('al-urut').innerHTML = alurPosOptions(gol, cab);
-  const sel=$('al-urut');
-  if(presetUrut!=null && [...sel.options].some(o=>o.value==String(presetUrut))) sel.value=String(presetUrut);
-  else sel.value = sel.options[sel.options.length-1]?.value || '1'; // default: di akhir
-};
-window.openAlurModal = (gol, presetCab, presetUrut) => {
-  const cabSel = gol==='poman'
-    ? `<div class="form-group"><label class="form-label">Cabang</label><select class="form-control" id="al-cab" onchange="alurRebuildPos('${gol}')"><option value="A">A (selain putih/coklat)</option><option value="B">B (putih/coklat)</option></select></div>`
-    : '<input type="hidden" id="al-cab" value="">';
-  showModal('Tambah / Sisipkan Tahap', `${cabSel}
-    <div class="form-group"><label class="form-label">Posisi</label><select class="form-control" id="al-urut"></select></div>
-    <div class="form-group"><label class="form-label">Nama Tahap</label><input class="form-control" id="al-nama" placeholder="Pengobatan / Lorod / ..."></div>
-    <div class="form-group"><label class="form-label">Jenis Pekerjaan</label><select class="form-control" id="al-jenis"><option>cap</option><option>obat</option><option>lorod</option><option>jemur</option><option>batik</option></select></div>
-    <div class="form-group"><label style="font-size:13px;"><input type="checkbox" id="al-warna"> Butuh pilih warna (bironan/PT/PL)</label></div>
-    <div class="form-group"><label class="form-label">Hanya warna tertentu (opsional, pisah koma)</label><input class="form-control" id="al-only" placeholder="Coklat"></div>
-    <div class="muted" style="font-size:12px;">Tahap di posisi ini & sesudahnya otomatis bergeser nomornya.</div>
-  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveAlur('${gol}')">Simpan</button>`);
-  if(gol==='poman' && presetCab) $('al-cab').value=presetCab;
-  alurRebuildPos(gol, presetUrut);
-};
-window.saveAlur = async (gol) => {
-  const nama=$('al-nama').value.trim(); if(!nama) return toast('Isi nama tahap','error');
-  const cab = $('al-cab').value||null;
-  const urut = parseInt($('al-urut').value)||1;
-  const only=$('al-only').value.trim();
-  const wb = writeBatch(db);
-  // geser semua tahap (golongan+cabang sama) yang urutannya >= posisi sisip
-  alurSteps(gol, cab).filter(a=>a.urutan>=urut).forEach(a=> wb.update(doc(db,'alur',a.id), { urutan:a.urutan+1 }));
-  const d={ golongan:gol, cabang:cab, urutan:urut, nama_tahap:nama, jenis_pekerjaan:$('al-jenis').value, butuh_warna:$('al-warna').checked };
-  if(only) d.only_warna = only.split(',').map(s=>s.trim()).filter(Boolean);
-  wb.set(doc(collection(db,'alur')), d);
-  await wb.commit();
-  await loadAllMaster(); renderMaster(); toast('Tahap tersimpan','success'); closeHostModal();
-};
-window.moveAlur = async (id, dir) => {
-  const s = M.alur.find(a=>a.id===id); if(!s) return;
-  const sibs = alurSteps(s.golongan, s.cabang||null);
-  const idx = sibs.findIndex(a=>a.id===id);
-  const swapIdx = dir==='up'? idx-1 : idx+1;
-  if(swapIdx<0 || swapIdx>=sibs.length) return;
-  const other = sibs[swapIdx];
-  const wb = writeBatch(db);
-  wb.update(doc(db,'alur',s.id), { urutan: other.urutan });
-  wb.update(doc(db,'alur',other.id), { urutan: s.urutan });
-  await wb.commit(); await loadAllMaster(); renderMaster();
-};
-
 function renderPekerja(){
   return `<div class="card"><div class="card-title">Pekerja <button class="btn btn-outline btn-sm" onclick="openPekerjaModal()">+ Pekerja</button></div><div class="table-wrap"><table><thead><tr><th>Nama</th><th>Peran</th><th>Upah</th><th>Target</th><th></th></tr></thead><tbody>${
     M.pekerja.map(p=>`<tr><td><b>${esc(p.nama)}</b>${p.catatan?`<div class="muted" style="font-size:11px;">${esc(p.catatan)}</div>`:''}</td><td>${esc(p.peran_utama||'-')}</td><td>${esc(p.tipe_upah||'-')}</td><td>${p.target_kodi?p.target_kodi+' kodi'+(p.target_wajib?' (wajib)':''):'-'}</td><td><button class="btn btn-danger btn-sm" onclick="delDoc('pekerja','${p.id}')">✕</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">belum ada</td></tr>'
   }</tbody></table></div></div>`;
 }
-window.openPekerjaModal = () => {
-  showModal('Tambah Pekerja', `
-    <div class="form-group"><label class="form-label">Nama</label><input class="form-control" id="pk-nama"></div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">Peran Utama</label><input class="form-control" id="pk-peran" placeholder="pengobat/pengecap/..."></div>
-      <div class="form-group"><label class="form-label">Tipe Upah</label><select class="form-control" id="pk-upah"><option>harian</option><option>borongan</option></select></div>
-    </div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">Target Kodi/hari</label><input type="number" class="form-control" id="pk-target" placeholder="kosong jika tidak ada"></div>
-      <div class="form-group"><label style="font-size:13px;display:block;margin-top:28px;"><input type="checkbox" id="pk-wajib"> Target wajib</label></div>
-    </div>
-    <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="pk-cat"></div>
-  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="savePekerja()">Simpan</button>`);
-};
-window.savePekerja = async () => {
-  const nama=$('pk-nama').value.trim(); if(!nama) return toast('Isi nama','error');
-  const t=parseInt($('pk-target').value)||null;
-  await addDoc(collection(db,'pekerja'), { nama, peran_utama:$('pk-peran').value.trim(), tipe_upah:$('pk-upah').value, target_kodi:t, target_wajib:$('pk-wajib').checked, catatan:$('pk-cat').value.trim() });
+window.openPekerjaModal = () => showModal('Tambah Pekerja', `
+  <div class="form-group"><label class="form-label">Nama</label><input class="form-control" id="pk-nama"></div>
+  <div class="grid-2"><div class="form-group"><label class="form-label">Peran Utama</label><input class="form-control" id="pk-peran" placeholder="pengobat/pengecap/..."></div>
+  <div class="form-group"><label class="form-label">Tipe Upah</label><select class="form-control" id="pk-upah"><option>harian</option><option>borongan</option></select></div></div>
+  <div class="grid-2"><div class="form-group"><label class="form-label">Target Kodi/hari</label><input type="number" step="0.5" class="form-control" id="pk-target" placeholder="kosong jika tdk ada"></div>
+  <div class="form-group"><label style="font-size:13px;display:block;margin-top:28px;"><input type="checkbox" id="pk-wajib"> Target wajib</label></div></div>
+  <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="pk-cat"></div>
+`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="savePekerja()">Simpan</button>`);
+window.savePekerja = async () => { const nama=$('pk-nama').value.trim(); if(!nama) return toast('Isi nama','error');
+  await addDoc(collection(db,'pekerja'), { nama, peran_utama:$('pk-peran').value.trim(), tipe_upah:$('pk-upah').value, target_kodi:num($('pk-target').value)||null, target_wajib:$('pk-wajib').checked, catatan:$('pk-cat').value.trim() });
   await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal();
 };
-
-function renderRacikan(){
-  const biaya = M.config?.biaya_obat_warna || {};
-  const poman = M.warna.filter(w=>w.golongan==='poman');
-  return `<div class="card"><div class="card-title">Biaya Obat per Kodi (Poman) <button class="btn btn-outline btn-sm" onclick="openBiayaObatModal()">Ubah</button></div>
-    <div class="table-wrap"><table><tbody>${poman.map(w=>`<tr><td>${esc(w.nama)}</td><td style="text-align:right">${rp(biaya[w.nama]||0)}</td></tr>`).join('')||'<tr><td class="muted">isi data awal dulu</td></tr>'}</tbody></table></div></div>
-    <div class="card"><div class="card-title">Racikan Bahan (referensi komposisi) <button class="btn btn-outline btn-sm" onclick="openRacikanModal()">+ Racikan</button></div>
-    ${M.racikan.length? `<div class="table-wrap"><table><thead><tr><th>Golongan</th><th>Warna</th><th>Komponen</th><th></th></tr></thead><tbody>${M.racikan.map(r=>`<tr><td>${esc(golNama(r.golongan))}</td><td>${esc(warnaById(r.warna_id)?.nama||'-')}</td><td>${(r.komponen||[]).map(k=>esc((M.bahan.find(b=>b.id===k.bahan_id)||{}).nama||'?')+' '+k.jumlah_gram+'g').join(', ')}</td><td><button class="btn btn-danger btn-sm" onclick="delDoc('racikan_obat','${r.id}')">✕</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="muted" style="font-size:12.5px;">Opsional — catatan komposisi obat per warna. Stok obat dikurangi lewat menu <b>Stok Obat → Ambil</b> (manual), bukan otomatis.</div>'}</div>`;
-}
-window.openBiayaObatModal = () => {
+function renderBiaya(){
   const biaya=M.config?.biaya_obat_warna||{}; const poman=M.warna.filter(w=>w.golongan==='poman');
+  return `<div class="card"><div class="card-title">Biaya Obat per Kodi (Poman) <button class="btn btn-outline btn-sm" onclick="openBiayaObatModal()">Ubah</button></div><div class="table-wrap"><table><tbody>${poman.map(w=>`<tr><td>${esc(w.nama)}</td><td style="text-align:right">${rp(biaya[w.nama]||0)}</td></tr>`).join('')||'<tr><td class="muted">isi data awal dulu</td></tr>'}</tbody></table></div><div class="muted" style="font-size:12px;margin-top:8px;">Dipakai untuk perhitungan HPP per warna.</div></div>`;
+}
+window.openBiayaObatModal = () => { const biaya=M.config?.biaya_obat_warna||{}; const poman=M.warna.filter(w=>w.golongan==='poman');
   showModal('Biaya Obat per Kodi', poman.map(w=>`<div class="form-group"><label class="form-label">${esc(w.nama)}</label><input type="number" class="form-control bo-inp" data-w="${esc(w.nama)}" value="${biaya[w.nama]||0}"></div>`).join(''), `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveBiayaObat()">Simpan</button>`);
 };
-window.saveBiayaObat = async () => {
-  const biaya={}; document.querySelectorAll('.bo-inp').forEach(i=>biaya[i.dataset.w]=+i.value||0);
-  await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), biaya_obat_warna:biaya}, {merge:true});
-  M.config={...(M.config||{}), biaya_obat_warna:biaya}; toast('Tersimpan','success'); closeHostModal(); renderMaster();
+window.saveBiayaObat = async () => { const biaya={}; document.querySelectorAll('.bo-inp').forEach(i=>biaya[i.dataset.w]=num(i.value));
+  await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), biaya_obat_warna:biaya}, {merge:true}); M.config={...(M.config||{}), biaya_obat_warna:biaya}; toast('Tersimpan','success'); closeHostModal(); renderMaster();
 };
-window.openRacikanModal = () => {
-  const golOpts=M.golongan.map(g=>`<option value="${g.id}">${esc(g.nama)}</option>`).join('');
-  showModal('Tambah Racikan', `
-    <div class="grid-2"><div class="form-group"><label class="form-label">Golongan</label><select class="form-control" id="rc-gol" onchange="rcGolChange()">${golOpts}</select></div>
-    <div class="form-group"><label class="form-label">Warna</label><select class="form-control" id="rc-warna"></select></div></div>
-    <label class="form-label">Komponen Bahan</label><div id="rc-rows"></div>
-    <button class="btn btn-outline btn-sm" type="button" onclick="rcAddRow()" style="margin-top:6px;">+ Bahan</button>
-  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveRacikan()">Simpan</button>`);
-  rcGolChange(); rcAddRow();
-};
-window.rcGolChange = () => { const g=$('rc-gol').value; $('rc-warna').innerHTML=warnaOptsFor(g); };
-window.rcAddRow = () => { const d=document.createElement('div'); d.className='row-flex'; d.style.marginBottom='6px'; d.innerHTML=`<select class="form-control rc-bahan" style="flex:1;">${M.bahan.map(b=>`<option value="${b.id}">${esc(b.nama)}</option>`).join('')}</select><input type="number" class="form-control rc-gram" placeholder="gram" style="width:100px;"><button class="btn btn-outline btn-sm" type="button" onclick="this.parentElement.remove()">✕</button>`; $('rc-rows').appendChild(d); };
-window.saveRacikan = async () => {
-  const komponen=[...document.querySelectorAll('#rc-rows .row-flex')].map(r=>({bahan_id:r.querySelector('.rc-bahan').value, jumlah_gram:+r.querySelector('.rc-gram').value||0})).filter(k=>k.jumlah_gram>0);
-  if(!komponen.length) return toast('Tambah komponen','error');
-  await addDoc(collection(db,'racikan_obat'), { golongan:$('rc-gol').value, warna_id:$('rc-warna').value, tahap_warna:'akhir', komponen });
-  await loadAllMaster(); renderMaster(); toast('Tersimpan','success'); closeHostModal();
-};
-
 function renderAmbang(){
-  const a=M.config?.ambang||{cap:2,obat:3,batik:4,lorod:3,jemur:2};
-  return `<div class="card"><div class="card-title">Ambang "Mengendap" (hari) <button class="btn btn-outline btn-sm" onclick="openAmbangModal()">Ubah</button></div>
-    <div class="table-wrap"><table><tbody>${Object.keys(a).map(k=>`<tr><td>${esc(k)}</td><td style="text-align:right"><b>${a[k]}</b> hari</td></tr>`).join('')}</tbody></table></div>
-    <div class="muted" style="font-size:12px;margin-top:8px;">Grup kodi yang berada di satu tahap melebihi ambang akan ditandai merah di dashboard.</div></div>`;
+  const a=M.config?.ambang_pool??5;
+  return `<div class="card"><div class="card-title">Ambang "Mengendap" <button class="btn btn-outline btn-sm" onclick="openAmbangModal()">Ubah</button></div><div style="font-size:14px;">Stok di satu kolam lebih dari <b>${a} hari</b> tanpa pergerakan → ditandai merah di Dashboard.</div></div>`;
 }
-window.openAmbangModal = () => {
-  const a=M.config?.ambang||{cap:2,obat:3,batik:4,lorod:3,jemur:2};
-  showModal('Ubah Ambang Mengendap', ['cap','obat','batik','lorod','jemur'].map(k=>`<div class="form-group"><label class="form-label">${k} (hari)</label><input type="number" class="form-control am-inp" data-k="${k}" value="${a[k]??3}"></div>`).join(''), `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveAmbang()">Simpan</button>`);
+window.openAmbangModal = () => { const a=M.config?.ambang_pool??5;
+  showModal('Ubah Ambang Mengendap', `<div class="form-group"><label class="form-label">Hari maksimum diam</label><input type="number" class="form-control" id="amb-val" value="${a}"></div>`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveAmbang()">Simpan</button>`);
 };
-window.saveAmbang = async () => {
-  const ambang={}; document.querySelectorAll('.am-inp').forEach(i=>ambang[i.dataset.k]=+i.value||0);
-  await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), ambang}, {merge:true});
-  M.config={...(M.config||{}), ambang}; toast('Tersimpan','success'); closeHostModal(); renderMaster();
-};
-
+window.saveAmbang = async () => { const v=num($('amb-val').value)||5; await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), ambang_pool:v}, {merge:true}); M.config={...(M.config||{}), ambang_pool:v}; toast('Tersimpan','success'); closeHostModal(); renderMaster(); };
 window.delDoc = async (col,id) => { if(!confirm('Hapus data ini?')) return; await deleteDoc(doc(db,col,id)); await loadAllMaster(); renderMaster(); toast('Dihapus'); };
 
 // ===== SEED =====
 window.seedAll = async () => {
-  if(M.golongan.length){ if(!confirm('Data golongan sudah ada. Tetap isi data awal? (bisa menduplikasi)')) return; }
+  if(M.golongan.length){ if(!confirm('Data golongan sudah ada. Tetap isi? (bisa menduplikasi)')) return; }
   $('btn-seed').disabled=true; $('btn-seed').textContent='Mengisi…';
   try {
     const GOL=[{id:'poman',nama:'Poman/Kelir'},{id:'trusmian',nama:'Trusmian'},{id:'lebar',nama:'Lebar'}];
@@ -1083,27 +851,13 @@ window.seedAll = async () => {
     const TIPE={ poman:['Tapih','Sarung','Slendang'], trusmian:['Tapih','Sarung'], lebar:['Tapih','Sarung'] };
     for(const g in TIPE) for(const t of TIPE[g]) await addDoc(collection(db,'tipe_produk'), {golongan:g,nama:t,panjang_mori:null});
     const WARNA={ poman:['Kuning','Biru','Merah','Putih','Coklat','Hijau','Hijau Gadung'], lebar:['Biru','Merah','Violet','Kuning','Hijau'] };
-    const warnaIdMap={};
-    for(const g in WARNA) for(const w of WARNA[g]){ const r=await addDoc(collection(db,'warna'), {golongan:g,nama:w}); warnaIdMap[g+'|'+w]=r.id; }
-    // ALUR
-    const ALUR=[
-      // POMAN A
-      {g:'poman',c:'A',u:1,n:'Pengecapan',j:'cap'},{g:'poman',c:'A',u:2,n:'Pengobatan dasar',j:'obat'},{g:'poman',c:'A',u:3,n:'Lorod',j:'lorod'},{g:'poman',c:'A',u:4,n:'Jemur',j:'jemur'},{g:'poman',c:'A',u:5,n:'Pembatikan (bironan)',j:'batik'},{g:'poman',c:'A',u:6,n:'Pengobatan warna',j:'obat',w:true},{g:'poman',c:'A',u:7,n:'Lorod',j:'lorod'},{g:'poman',c:'A',u:8,n:'Jemur',j:'jemur'},
-      // POMAN B
-      {g:'poman',c:'B',u:1,n:'Pengecapan',j:'cap'},{g:'poman',c:'B',u:2,n:'Pengobatan dasar',j:'obat'},{g:'poman',c:'B',u:3,n:'Jemur',j:'jemur'},{g:'poman',c:'B',u:4,n:'Pembatikan (tutuban)',j:'batik'},{g:'poman',c:'B',u:5,n:'Pengobatan tutuban',j:'obat'},{g:'poman',c:'B',u:6,n:'Lorod',j:'lorod'},{g:'poman',c:'B',u:7,n:'Pengobatan akhir coklat',j:'obat',only:['Coklat']},{g:'poman',c:'B',u:8,n:'Jemur',j:'jemur'},
-      // TRUSMIAN
-      {g:'trusmian',c:null,u:1,n:'Cap pinggir (minggiri)',j:'cap'},{g:'trusmian',c:null,u:2,n:'Pengobatan warna',j:'obat',w:true},{g:'trusmian',c:null,u:3,n:'Cap tengah (nengai)',j:'cap'},{g:'trusmian',c:null,u:4,n:'Pengobatan tutuban',j:'obat'},{g:'trusmian',c:null,u:5,n:'Jemur',j:'jemur'},{g:'trusmian',c:null,u:6,n:'Pembatikan',j:'batik'},{g:'trusmian',c:null,u:7,n:'Pengobatan warna',j:'obat',w:true},{g:'trusmian',c:null,u:8,n:'Lorod',j:'lorod'},{g:'trusmian',c:null,u:9,n:'Jemur',j:'jemur'},
-      // LEBAR
-      {g:'lebar',c:null,u:1,n:'Pengecapan',j:'cap'},{g:'lebar',c:null,u:2,n:'Pengobatan',j:'obat',w:true},{g:'lebar',c:null,u:3,n:'Pembatikan',j:'batik'},{g:'lebar',c:null,u:4,n:'Pengobatan tutuban',j:'obat'},{g:'lebar',c:null,u:5,n:'Lorod',j:'lorod'},{g:'lebar',c:null,u:6,n:'Jemur',j:'jemur'}
-    ];
-    for(const a of ALUR){ const d={golongan:a.g,cabang:a.c,urutan:a.u,nama_tahap:a.n,jenis_pekerjaan:a.j,butuh_warna:!!a.w}; if(a.only)d.only_warna=a.only; await addDoc(collection(db,'alur'),d); }
-    // PEKERJA
+    for(const g in WARNA) for(const w of WARNA[g]) await addDoc(collection(db,'warna'), {golongan:g,nama:w});
     const PEK=[
       {nama:'Julan',peran_utama:'pengobat',tipe_upah:'harian',target_kodi:5,target_wajib:true,catatan:''},
       {nama:'Fijae',peran_utama:'pengobat',tipe_upah:'harian',target_kodi:5,target_wajib:true,catatan:''},
-      {nama:'Johan',peran_utama:'pengobat/lorod',tipe_upah:'harian',target_kodi:null,target_wajib:false,catatan:'Juga bikin lilin (~3 kodi)'},
-      {nama:'Hendra',peran_utama:'pengobat/jemur',tipe_upah:'harian',target_kodi:null,target_wajib:false,catatan:''},
-      {nama:'Arin',peran_utama:'penjemur',tipe_upah:'harian',target_kodi:null,target_wajib:false,catatan:'Juga di pasar'},
+      {nama:'Johan',peran_utama:'pengobat/lorod',tipe_upah:'harian',target_kodi:3,target_wajib:false,catatan:'Juga bikin lilin'},
+      {nama:'Hendra',peran_utama:'pengobat/jemur',tipe_upah:'harian',target_kodi:5,target_wajib:false,catatan:'Gantikan menjemur saat Arin di pasar'},
+      {nama:'Arin',peran_utama:'penjemur',tipe_upah:'harian',target_kodi:null,target_wajib:false,catatan:'Juga kerja di pasar'},
       {nama:'Pengecap 1',peran_utama:'pengecap',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''},
       {nama:'Pengecap 2',peran_utama:'pengecap',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''},
       {nama:'Pengecap 3',peran_utama:'pengecap',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''},
@@ -1114,18 +868,14 @@ window.seedAll = async () => {
       {nama:'Pembatik 5',peran_utama:'pembatik',tipe_upah:'borongan',target_kodi:null,target_wajib:false,catatan:''}
     ];
     for(const p of PEK) await addDoc(collection(db,'pekerja'), p);
-    // BAHAN
     const BAHAN=['Merah B mtk jpn','Garam biru mtk jpn','R mtk jpn','OL I','ASG I','ASD I','BB','ASC I','Sol hijau ny','Sol coklat ny','BS I','BO 80 D','66 29%','Kustik','Nitrit','GG','Garam item','Kaporit','Mori/Primatex','Lilin','Solda','Plastik','Minyak'];
     for(const b of BAHAN) await addDoc(collection(db,'bahan_baku'), {nama:b,satuan:'',stok_lama:0,stok_baru:0,stok_minimum:0});
-    // CONFIG
     await setDoc(doc(db,'config_produksi','hpp'), {
       hpp_tetap:{kain:59290,ngecap:70000,batik:40000,obat_tk:110000,lainnya:130900},
       biaya_obat_warna:{'Hijau Gadung':83310,'Hijau':75180,'Kuning':64360,'Coklat':73705,'Biru':50690,'Merah':64040,'Putih':56905},
-      ambang:{cap:2,obat:3,batik:4,lorod:3,jemur:2}
+      ambang_pool:5
     });
-    await loadAllMaster();
-    toast('Data awal terisi ✅','success');
-    renderMaster();
+    await loadAllMaster(); toast('Data awal terisi ✅','success'); renderMaster();
   } catch(e){ toast('Gagal seed: '+e.message,'error'); }
   $('btn-seed').disabled=false; $('btn-seed').textContent='Isi Data Awal';
 };
