@@ -142,7 +142,7 @@
       <a class="nav-item" data-page="harian" onclick="navigateTo('harian')">📋 Input Harian</a>
       <a class="nav-item" data-page="batch" onclick="navigateTo('batch')">🧵 Batch</a>
       <div class="nav-section">Monitoring</div>
-      <a class="nav-item" data-page="pekerja-rekap" onclick="navigateTo('pekerja-rekap')">👷 Hasil Pekerja</a>
+      <a class="nav-item" data-page="pekerja-rekap" onclick="navigateTo('pekerja-rekap')">👷 Hasil &amp; Upah</a>
       <a class="nav-item" data-page="bahan" onclick="navigateTo('bahan')">🧪 Stok Obat <span class="badge badge-red hidden" id="bahan-badge" style="margin-left:auto;">0</span></a>
       <a class="nav-item" data-page="hpp" onclick="navigateTo('hpp')">💰 HPP</a>
       <div class="nav-section">Pengaturan</div>
@@ -203,14 +203,16 @@
       <div id="batch-list"><div class="empty">Memuat…</div></div>
     </div>
 
-    <!-- HASIL PEKERJA -->
+    <!-- HASIL PEKERJA & UPAH -->
     <div class="page" id="page-pekerja-rekap">
-      <div class="page-header"><div class="page-title">👷 Hasil Pekerja</div><div class="page-subtitle">Rekap kodi per pekerja vs target</div></div>
-      <div class="row-flex" style="margin-bottom:14px;">
+      <div class="page-header"><div class="page-title">👷 Hasil & Upah</div><div class="page-subtitle">Rekap hasil pekerja & hitung upah borongan</div></div>
+      <div class="row-flex" style="margin-bottom:14px;align-items:center;">
         <input type="date" id="rekap-from" class="form-control" style="max-width:170px;" onchange="loadPekerjaRekap()" />
+        <span class="muted">s/d</span>
         <input type="date" id="rekap-to" class="form-control" style="max-width:170px;" onchange="loadPekerjaRekap()" />
+        <button class="btn btn-outline btn-sm" onclick="rekapHariIni()">Hari ini</button>
       </div>
-      <div class="card"><div id="pekerja-rekap-list"><div class="empty">Memuat…</div></div></div>
+      <div id="pekerja-rekap-list"><div class="empty">Memuat…</div></div>
     </div>
 
     <!-- STOK OBAT -->
@@ -493,7 +495,9 @@ function renderGerakList(){
   if(!rows.length){ el.innerHTML='<div class="empty"><div class="ico">📋</div>Belum ada gerak '+hrTab+'</div>'; return; }
   const tot = rows.reduce((s,g)=>s+(g.jumlah_kodi||0),0);
   el.innerHTML = `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">${rows.length} gerak · total ${(+tot.toFixed(1))} kodi</div><div class="table-wrap"><table><thead><tr><th>Batch</th><th>Gerak</th><th>Warna</th><th>Pekerja</th><th>Kodi</th><th></th></tr></thead><tbody>${
-    rows.map(g=>`<tr><td><b>${esc(g.batch_kode||'-')}</b></td><td style="font-size:12.5px;">${esc(poolShort(g.from_pool)||'•')} <span class="flow-arrow">→</span> ${esc(poolShort(g.to_pool)||'•')}<div class="muted" style="font-size:10.5px;">${esc(g.jenis_label||'')}</div></td><td>${esc(g.warna_nama||'-')}</td><td>${esc(g.pekerja_nama||'-')}</td><td><b>${g.jumlah_kodi}</b></td><td><button class="btn btn-danger btn-sm" onclick="delGerak('${g.id}')">✕</button></td></tr>`).join('')
+    rows.map(g=>{ const isWip=POOLS.find(p=>p.id===g.to_pool)?.wip;
+      return `<tr><td><b>${esc(g.batch_kode||'-')}</b></td><td style="font-size:12.5px;">${esc(poolShort(g.from_pool)||'•')} <span class="flow-arrow">→</span> ${esc(poolShort(g.to_pool)||'•')}<div class="muted" style="font-size:10.5px;">${esc(g.jenis_label||'')}</div></td><td>${esc(g.warna_nama||'-')}</td><td>${esc(g.pekerja_nama||'-')}</td><td><b>${g.jumlah_kodi}</b></td><td style="white-space:nowrap;">${isWip?`<button class="btn btn-outline btn-sm" onclick="openSelesaiGerak('${g.id}')">✓ Selesai</button> `:''}<button class="btn btn-danger btn-sm" onclick="delGerak('${g.id}')">✕</button></td></tr>`;
+    }).join('')
   }</tbody></table></div>`;
 }
 window.openGerakModal = async () => {
@@ -559,6 +563,45 @@ window.delGerak = async (id) => {
   applyGerak(wb, g.batch_id, g.to_pool, g.from_pool, g.jumlah_kodi); // reverse
   wb.delete(doc(db,'gerak',id));
   await wb.commit(); toast('Dihapus & stok dikembalikan'); loadHarian();
+};
+// Selesai langsung dari baris gerak WIP (mis. Dicap → Putian); sisa tetap di kolam utk besok
+window.openSelesaiGerak = async (gerakId) => {
+  const g=dayGerak.find(x=>x.id===gerakId); if(!g) return;
+  const wipPool=g.to_pool;
+  const stokMap=await loadStokAll();
+  const cur=getStok(stokMap, g.batch_id, wipPool);
+  let toField;
+  if(wipPool==='pengecapan') toField=`<input type="hidden" id="sg-to" value="putian"><div class="form-group"><label class="form-label">Hasil</label><input class="form-control" value="Putian (PB / PT / PL)" disabled></div>`;
+  else if(wipPool==='pembatikan') toField=`<div class="form-group"><label class="form-label">Hasil batik</label><select class="form-control" id="sg-to"><option value="lakar_sdh_batik">Lakar sudah dibatik (bironan)</option><option value="ttb">Tutuban (TTB)</option></select></div>`;
+  else toField=`<div class="form-group"><label class="form-label">Ke kolam</label><select class="form-control" id="sg-to">${POOLS.map(p=>`<option value="${p.id}">${esc(p.label)}</option>`).join('')}</select></div>`;
+  showModal('Selesai — '+g.batch_kode, `
+    <p class="muted" style="font-size:12.5px;margin-bottom:10px;"><b>${esc(poolLabel(wipPool))}</b> di batch ini sekarang: <b>${(+cur.toFixed(1))} kodi</b>. Isi yang selesai hari ini — sisanya tetap di kolam untuk dilanjutkan besok.</p>
+    <input type="hidden" id="sg-cur" value="${cur}">
+    ${toField}
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Selesai (kodi)</label><input type="number" step="0.5" min="0" class="form-control" id="sg-kodi" value="${(+cur.toFixed(1))}" oninput="sgSisa()"></div>
+      <div class="form-group"><label class="form-label">Sisa besok</label><input class="form-control" id="sg-sisa" disabled></div>
+    </div>
+    <div class="form-group"><label class="form-label">Pekerja (opsional)</label><select class="form-control" id="sg-pekerja"><option value="">—</option>${M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('')}</select></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="sg-save" onclick="saveSelesaiGerak('${g.batch_id}','${esc(g.batch_kode||'')}','${g.golongan||''}','${wipPool}')">Simpan</button>`);
+  sgSisa();
+};
+window.sgSisa = () => { const cur=num($('sg-cur').value), v=num($('sg-kodi').value); $('sg-sisa').value=(+Math.max(0,cur-v).toFixed(1)); };
+window.saveSelesaiGerak = async (batchId, batchKode, golongan, fromPool) => {
+  const to=$('sg-to').value, kodi=num($('sg-kodi').value), cur=num($('sg-cur').value);
+  if(kodi<=0){ toast('Isi jumlah selesai','error'); return; }
+  if(kodi>cur+0.001){ toast('Selesai melebihi stok di kolam ('+(+cur.toFixed(1))+')','error'); return; }
+  const pekId=$('sg-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
+  const cat = fromPool==='pengecapan'?'cap':(fromPool==='pembatikan'?'batik':'lain');
+  const label = `${poolLabel(fromPool)} selesai → ${poolLabel(to)}`;
+  $('sg-save').disabled=true;
+  try {
+    const wb=writeBatch(db);
+    applyGerak(wb, batchId, fromPool, to, kodi);
+    wb.set(doc(collection(db,'gerak')), { tanggal:$('hr-date').value||todayStr(), sesi:'sore', jenis_preset:'selesai', jenis_label:label, cat, batch_id:batchId, batch_kode:batchKode, golongan:golongan||null, from_pool:fromPool, to_pool:to, warna_id:null, warna_nama:'', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'', jumlah_kodi:kodi, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
+    await wb.commit();
+    toast('Selesai '+kodi+' kodi ✅','success'); closeHostModal(); loadHarian();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('sg-save').disabled=false; }
 };
 
 // ===== BATCH =====
@@ -665,22 +708,43 @@ window.saveGrosir = async (batchId) => {
   } catch(e){ toast('Gagal: '+e.message,'error'); $('gr-save').disabled=false; }
 };
 
-// ===== HASIL PEKERJA =====
+// ===== HASIL PEKERJA & UPAH =====
+window.rekapHariIni = () => { $('rekap-from').value=todayStr(); $('rekap-to').value=todayStr(); loadPekerjaRekap(); };
+const isCapDone   = g => g.cat==='cap'   && g.to_pool==='putian';
+const isBatikDone = g => g.cat==='batik' && (g.to_pool==='lakar_sdh_batik' || g.to_pool==='ttb');
 async function loadPekerjaRekap(){
   const from=$('rekap-from').value, to=$('rekap-to').value; if(!from||!to) return;
   const snap=await getDocs(query(collection(db,'gerak'), where('tanggal','>=',from), where('tanggal','<=',to)));
   const gks=snap.docs.map(d=>d.data());
-  const byPek={}; gks.forEach(g=>{ if(!g.pekerja_id) return; (byPek[g.pekerja_id]=byPek[g.pekerja_id]||{nama:g.pekerja_nama,total:0,cat:{}}); byPek[g.pekerja_id].total+=g.jumlah_kodi||0; byPek[g.pekerja_id].cat[g.cat]=(byPek[g.pekerja_id].cat[g.cat]||0)+(g.jumlah_kodi||0); });
-  M.pekerja.forEach(p=>{ if(!byPek[p.id]) byPek[p.id]={nama:p.nama,total:0,cat:{}}; });
+  const tarifCap=M.config?.hpp_tetap?.ngecap||0, tarifBatik=M.config?.hpp_tetap?.batik||0;
   const days=Math.max(1, Math.round((new Date(to)-new Date(from))/86400000)+1);
+  // lump borongan (hasil selesai, tak peduli siapa yang dicatat)
+  const capKodi=gks.filter(isCapDone).reduce((s,g)=>s+(g.jumlah_kodi||0),0);
+  const batikKodi=gks.filter(isBatikDone).reduce((s,g)=>s+(g.jumlah_kodi||0),0);
+  const totalUpah=capKodi*tarifCap + batikKodi*tarifBatik;
+  // per pekerja
+  const byPek={}; gks.forEach(g=>{ if(!g.pekerja_id) return; const r=byPek[g.pekerja_id]=byPek[g.pekerja_id]||{nama:g.pekerja_nama,total:0,obat:0,cap:0,batik:0};
+    r.total+=g.jumlah_kodi||0; if(g.cat==='obat') r.obat+=g.jumlah_kodi||0; if(isCapDone(g)) r.cap+=g.jumlah_kodi||0; if(isBatikDone(g)) r.batik+=g.jumlah_kodi||0; });
+  M.pekerja.forEach(p=>{ if(!byPek[p.id]) byPek[p.id]={nama:p.nama,total:0,obat:0,cap:0,batik:0}; });
   const rows=Object.keys(byPek).map(k=>({...byPek[k], pek:M.pekerja.find(p=>p.id===k)})).sort((a,b)=>b.total-a.total);
-  $('pekerja-rekap-list').innerHTML = `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">${from} → ${to} (${days} hari)</div><div class="table-wrap"><table><thead><tr><th>Pekerja</th><th>Total</th><th>Obat</th><th>Rata/hari</th><th>Target</th><th>Status</th></tr></thead><tbody>${
-    rows.map(r=>{ const avg=r.total/days; const tgt=r.pek?.target_kodi, wajib=r.pek?.target_wajib;
-      const obat=r.cat.obat||0;
-      let st='<span class="muted">—</span>'; if(tgt&&wajib){ st = (obat/days)>=tgt? '<span class="badge badge-green">Tercapai</span>':'<span class="badge badge-red">Kurang</span>'; }
-      return `<tr><td><b>${esc(r.nama)}</b> ${r.pek?.peran_utama?`<span class="muted" style="font-size:11px;">${esc(r.pek.peran_utama)}</span>`:''}</td><td><b>${(+r.total.toFixed(1))}</b></td><td>${(+obat.toFixed(1))}</td><td>${avg.toFixed(1)}</td><td>${tgt?tgt+' kodi':'-'}</td><td>${st}</td></tr>`;
+
+  const upahCard=`<div class="card"><div class="card-title">💵 Upah Borongan <span class="muted" style="font-weight:500;font-size:12px;">${from===to?from:from+' → '+to}</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Pekerjaan</th><th>Selesai</th><th>Tarif/kodi</th><th>Upah</th></tr></thead><tbody>
+      <tr><td>Pengecapan</td><td>${(+capKodi.toFixed(1))} kodi</td><td>${rp(tarifCap)}</td><td><b>${rp(capKodi*tarifCap)}</b></td></tr>
+      <tr><td>Pembatikan</td><td>${(+batikKodi.toFixed(1))} kodi</td><td>${rp(tarifBatik)}</td><td><b>${rp(batikKodi*tarifBatik)}</b></td></tr>
+      <tr style="font-weight:800"><td>Total borongan</td><td></td><td></td><td>${rp(totalUpah)}</td></tr>
+    </tbody></table></div>
+    <div class="muted" style="font-size:12px;margin-top:8px;">Dihitung dari hasil <b>SELESAI</b> ("Pengecapan selesai"/"Batik selesai" yang diinput sore) — bukan mori yang diberi pagi. Tarif diambil dari menu <b>HPP</b> (Ngecap & Batik), bisa diubah di sana.</div></div>`;
+
+  const tableCard=`<div class="card"><div class="card-title">Rekap per Pekerja <span class="muted" style="font-weight:500;font-size:12px;">${days} hari</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Pekerja</th><th>Aktivitas</th><th>Obat</th><th>Upah borongan</th><th>Target</th><th>Status</th></tr></thead><tbody>${
+    rows.map(r=>{ const upah=r.cap*tarifCap + r.batik*tarifBatik; const tgt=r.pek?.target_kodi, wajib=r.pek?.target_wajib;
+      let st='<span class="muted">—</span>'; if(tgt&&wajib){ st=(r.obat/days)>=tgt?'<span class="badge badge-green">Tercapai</span>':'<span class="badge badge-red">Kurang</span>'; }
+      return `<tr><td><b>${esc(r.nama)}</b> ${r.pek?.peran_utama?`<span class="muted" style="font-size:11px;">${esc(r.pek.peran_utama)}</span>`:''}</td><td>${(+r.total.toFixed(1))}</td><td>${(+r.obat.toFixed(1))}</td><td>${upah?('<b>'+rp(upah)+'</b>'):'<span class="muted">-</span>'}</td><td>${tgt?tgt+' kodi':'-'}</td><td>${st}</td></tr>`;
     }).join('')
-  }</tbody></table></div>`;
+  }</tbody></table></div>
+    <div class="muted" style="font-size:12px;margin-top:8px;">"Upah borongan" per orang hanya terisi bila pekerja dipilih saat input gerak selesai. Pengobat = harian (lihat kolom Obat vs Target).</div></div>`;
+  $('pekerja-rekap-list').innerHTML = upahCard + tableCard;
 }
 
 // ===== STOK OBAT (pengambilan) =====
