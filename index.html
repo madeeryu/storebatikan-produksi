@@ -176,7 +176,10 @@
     <div class="page" id="page-harian">
       <div class="page-header"><div class="page-title">📋 Input Harian</div><div class="page-subtitle">Pagi: target & distribusi · Sore: hasil & perpindahan stok</div></div>
       <div class="row-flex" style="margin-bottom:14px;align-items:center;">
+        <button class="btn btn-outline btn-sm" onclick="shiftHrDate(-1)" title="Hari sebelumnya">◀</button>
         <input type="date" id="hr-date" class="form-control" style="max-width:180px;" onchange="loadHarian()" />
+        <button class="btn btn-outline btn-sm" onclick="shiftHrDate(1)" title="Hari berikutnya">▶</button>
+        <button class="btn btn-outline btn-sm" onclick="hrToday()">Hari ini</button>
         <button class="btn btn-primary" onclick="openGerakModal()">+ Tambah Gerak</button>
       </div>
       <div class="pill-tab" id="hr-tabs">
@@ -502,6 +505,9 @@ async function loadHarian(){
   }</tbody></table></div>` : '<div class="muted" style="font-size:13px;">Belum ada pengobat.</div>';
   renderGerakList();
 }
+window.loadHarian = loadHarian;
+window.shiftHrDate = (d) => { const cur=$('hr-date').value||todayStr(); const dt=new Date(cur); dt.setDate(dt.getDate()+d); $('hr-date').value=dt.toLocaleDateString('sv-SE'); if(hrTab==='riwayat') setHrTab('sore'); loadHarian(); };
+window.hrToday = () => { $('hr-date').value=todayStr(); if(hrTab==='riwayat') setHrTab('sore'); loadHarian(); };
 window.saveTargets = async () => {
   const tgl=$('hr-date').value||todayStr();
   const wb=writeBatch(db);
@@ -512,7 +518,8 @@ window.saveTargets = async () => {
 };
 function renderGerakList(){
   if(hrTab==='riwayat') return;
-  $('hr-gerak-title').textContent = 'Gerak '+(hrTab==='pagi'?'Pagi':'Sore')+' Hari Ini';
+  const tgl=$('hr-date').value||todayStr();
+  $('hr-gerak-title').textContent = 'Gerak '+(hrTab==='pagi'?'Pagi':'Sore')+' · '+(tgl===todayStr()?'Hari Ini':fmtTgl(tgl));
   const rows = dayGerak.filter(g=>(g.sesi||'sore')===hrTab).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0));
   const el=$('hr-gerak-list');
   if(!rows.length){ el.innerHTML='<div class="empty"><div class="ico">📋</div>Belum ada gerak '+hrTab+'</div>'; return; }
