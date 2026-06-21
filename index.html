@@ -110,6 +110,7 @@
     .row-flex { display:flex; gap:10px; flex-wrap:wrap; }
     .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     @media (max-width:520px){ .grid-2{ grid-template-columns:1fr; } }
+    .pekerja-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
     .muted { color:var(--text-muted); } .hidden { display:none !important; }
     .pill-tab { display:flex; gap:6px; background:var(--bg); padding:4px; border-radius:10px; margin-bottom:14px; flex-wrap:wrap; }
     .pill-tab button { flex:1; min-width:80px; border:none; background:none; padding:8px 12px; border-radius:7px; font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; font-family:inherit; }
@@ -787,53 +788,70 @@ window.saveGrosir = async (batchId) => {
 
 // ===== HASIL PEKERJA & UPAH =====
 window.rekapHariIni = () => { $('rekap-from').value=todayStr(); $('rekap-to').value=todayStr(); loadPekerjaRekap(); };
-const isCapDone   = g => g.cat==='cap'   && g.to_pool==='putian';
+const isCapDone   = g => g.cat==='cap'   && (g.to_pool==='putian' || g.jenis_preset==='cap_nengai');
 const isBatikDone = g => g.cat==='batik' && (g.to_pool==='lakar_sdh_batik' || g.to_pool==='ttb');
 async function loadPekerjaRekap(){
   const from=$('rekap-from').value, to=$('rekap-to').value; if(!from||!to) return;
-  const snap=await getDocs(query(collection(db,'gerak'), where('tanggal','>=',from), where('tanggal','<=',to)));
-  const gks=snap.docs.map(d=>d.data());
+  const [gSnap,bSnap]=await Promise.all([
+    getDocs(query(collection(db,'gerak'), where('tanggal','>=',from), where('tanggal','<=',to))),
+    getDocs(query(collection(db,'bon_pekerja'), where('tanggal','==',to)))
+  ]);
+  const gks=gSnap.docs.map(d=>d.data());
+  const bonMap={}; bSnap.docs.forEach(d=>{ const x=d.data(); bonMap[x.pekerja_id]=x.jumlah||0; });
   const cfg=_hppCfg();
   const days=Math.max(1, Math.round((new Date(to)-new Date(from))/86400000)+1);
-  const capUpahOf = g => (g.jumlah_kodi||0) * ngecapKodi(g.golongan);
-  const batikRate = g => (g.to_pool==='ttb' ? (cfg.bt.ttb||0) : (cfg.bt.bironan||0)) * PCS_PER_KODI;
-  const batikUpahOf = g => (g.jumlah_kodi||0) * batikRate(g);
-  // lump borongan (hasil SELESAI, per golongan & jenis batik)
-  const capTot=gks.filter(isCapDone).reduce((s,g)=>s+(g.jumlah_kodi||0),0);
-  const birTot=gks.filter(g=>isBatikDone(g)&&g.to_pool==='lakar_sdh_batik').reduce((s,g)=>s+(g.jumlah_kodi||0),0);
-  const ttbTot=gks.filter(g=>isBatikDone(g)&&g.to_pool==='ttb').reduce((s,g)=>s+(g.jumlah_kodi||0),0);
-  const capUpah=gks.filter(isCapDone).reduce((s,g)=>s+capUpahOf(g),0);
-  const birUpah=birTot*((cfg.bt.bironan||0)*PCS_PER_KODI), ttbUpah=ttbTot*((cfg.bt.ttb||0)*PCS_PER_KODI);
-  const totalUpah=capUpah+birUpah+ttbUpah;
-  // per pekerja (+ rincian warna utk rekap bayaran)
-  const byPek={}; gks.forEach(g=>{ if(!g.pekerja_id) return; const r=byPek[g.pekerja_id]=byPek[g.pekerja_id]||{nama:g.pekerja_nama,total:0,obat:0,upah:0,warna:{}};
+  // tarif & label per gerak borongan (pcs basis, seperti rekap papan tulis)
+  function borongan(g){
+    if(isCapDone(g)){
+      if(g.golongan==='trusmian' && g.jenis_preset==='cap_nengai') return {key:'Cap nengai (Trusmi)', rate:cfg.ng.trusmian_nengai||0};
+      if(g.golongan==='trusmian') return {key:'Cap minggiri (Trusmi)', rate:cfg.ng.trusmian_minggiri||0};
+      return {key:'Cap '+golNama(g.golongan), rate:cfg.ng[g.golongan]||0};
+    }
+    if(isBatikDone(g)){ const ttb=g.to_pool==='ttb'; return {key:ttb?'Batik tutuban':'Batik bironan', rate:ttb?(cfg.bt.ttb||0):(cfg.bt.bironan||0)}; }
+    return null;
+  }
+  // per pekerja
+  const byPek={}; gks.forEach(g=>{ if(!g.pekerja_id) return; const r=byPek[g.pekerja_id]=byPek[g.pekerja_id]||{id:g.pekerja_id,nama:g.pekerja_nama,total:0,obat:0,groups:{},warna:{}};
     r.total+=g.jumlah_kodi||0; if(g.cat==='obat') r.obat+=g.jumlah_kodi||0;
-    if(isCapDone(g)) r.upah+=capUpahOf(g); if(isBatikDone(g)) r.upah+=batikUpahOf(g);
+    const b=borongan(g); if(b){ const grp=r.groups[b.key]=r.groups[b.key]||{kodi:0,rate:b.rate}; grp.kodi+=g.jumlah_kodi||0; }
     if(g.warna_nama) r.warna[g.warna_nama]=(r.warna[g.warna_nama]||0)+(g.jumlah_kodi||0); });
-  M.pekerja.forEach(p=>{ if(!byPek[p.id]) byPek[p.id]={nama:p.nama,total:0,obat:0,upah:0,warna:{}}; });
-  const rows=Object.keys(byPek).map(k=>({...byPek[k], pek:M.pekerja.find(p=>p.id===k)})).sort((a,b)=>b.total-a.total);
+  M.pekerja.forEach(p=>{ if(!byPek[p.id]) byPek[p.id]={id:p.id,nama:p.nama,total:0,obat:0,groups:{},warna:{}}; });
+  const rows=Object.values(byPek).map(r=>({...r, pek:M.pekerja.find(p=>p.id===r.id)})).filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
+  const grossOf = r => Object.values(r.groups).reduce((s,grp)=>s+grp.kodi*PCS_PER_KODI*grp.rate,0);
+  const totalBorongan=rows.reduce((s,r)=>s+grossOf(r),0);
+  const totalBayar=rows.reduce((s,r)=>s+grossOf(r)-(bonMap[r.id]||0),0);
 
-  const upahCard=`<div class="card"><div class="card-title">💵 Upah Borongan <span class="muted" style="font-weight:500;font-size:12px;">${from===to?from:from+' → '+to}</span></div>
-    <div class="table-wrap"><table><thead><tr><th>Pekerjaan</th><th>Selesai</th><th>Upah</th></tr></thead><tbody>
-      <tr><td>Pengecapan (per golongan)</td><td>${(+capTot.toFixed(1))} kodi</td><td><b>${rp(capUpah)}</b></td></tr>
-      <tr><td>Batik bironan</td><td>${(+birTot.toFixed(1))} kodi</td><td><b>${rp(birUpah)}</b></td></tr>
-      <tr><td>Batik tutuban</td><td>${(+ttbTot.toFixed(1))} kodi</td><td><b>${rp(ttbUpah)}</b></td></tr>
-      <tr style="font-weight:800"><td>Total borongan</td><td></td><td>${rp(totalUpah)}</td></tr>
-    </tbody></table></div>
-    <div class="muted" style="font-size:12px;margin-top:8px;">Dihitung dari hasil <b>SELESAI</b> sore (bukan mori pagi). Tarif ngecap per golongan & batik bironan/tutuban diambil dari menu <b>HPP</b>.</div></div>`;
+  const header=`<div class="card" style="padding:16px;"><div class="row-flex" style="justify-content:space-between;align-items:center;">
+    <div><div class="muted" style="font-size:12px;">Total upah borongan · ${from===to?fmtTgl(from):from+' → '+to}</div><div style="font-size:22px;font-weight:800;">${rp(totalBorongan)}</div><div class="muted" style="font-size:11.5px;">dibayar (− bon): <b style="color:var(--green-text)">${rp(totalBayar)}</b></div></div>
+    <div class="muted" style="font-size:11.5px;text-align:right;">${days} hari · ${rows.length} pekerja<br>tarif dari menu HPP</div>
+  </div></div>`;
 
-  const perPekerja = `<div style="font-weight:700;margin:4px 0 10px;">Rekap per Pekerja <span class="muted" style="font-weight:500;font-size:12px;">${days} hari · warna untuk rekap bayaran</span></div>` +
-    rows.map(r=>{ const tgt=r.pek?.target_kodi, wajib=r.pek?.target_wajib;
-      let st=''; if(tgt&&wajib) st=(r.obat/days)>=tgt?' <span class="badge badge-green">Tercapai</span>':' <span class="badge badge-red">Kurang</span>';
-      const warnaStr=Object.keys(r.warna).length? Object.keys(r.warna).sort().map(w=>`<span class="chip">${esc(w)} <b>${(+r.warna[w].toFixed(1))}</b></span>`).join(' ') : '<span class="muted" style="font-size:12px;">—</span>';
-      return `<div class="card" style="box-shadow:none;border:1px solid var(--border);padding:14px;margin-bottom:10px;">
-        <div class="card-title"><span>👷 ${esc(r.nama)} ${r.pek?.peran_utama?`<span class="muted" style="font-size:11px;font-weight:500;">${esc(r.pek.peran_utama)}</span>`:''}</span><span class="badge badge-blue">${(+r.total.toFixed(1))} kodi</span></div>
-        <div class="muted" style="font-size:12px;margin-bottom:6px;">Obat ${(+r.obat.toFixed(1))}${tgt?` / target ${tgt}/hari${st}`:''}${r.upah?` · upah borongan ${rp(r.upah)}`:''}</div>
-        <div><span class="muted" style="font-size:11.5px;">Warna dikerjakan: </span>${warnaStr}</div>
-      </div>`;
-    }).join('');
-  $('pekerja-rekap-list').innerHTML = upahCard + perPekerja;
+  const cards=rows.map(r=>{
+    const lines=Object.keys(r.groups).sort().map(k=>{ const grp=r.groups[k]; const pcs=grp.kodi*PCS_PER_KODI; const sub=pcs*grp.rate;
+      return `<div style="display:flex;justify-content:space-between;gap:6px;font-size:12.5px;padding:2px 0;"><span>${(+pcs.toFixed(0))} × ${rp(grp.rate)} <span class="muted">${esc(k)}</span></span><b>${rp(sub)}</b></div>`; });
+    const gross=grossOf(r); const bon=bonMap[r.id]||0; const net=gross-bon;
+    const tgt=r.pek?.target_kodi, wajib=r.pek?.target_wajib;
+    let st=''; if(tgt&&wajib) st=(r.obat/days)>=tgt?' <span class="badge badge-green">✓</span>':' <span class="badge badge-red">kurang</span>';
+    const warnaStr=Object.keys(r.warna).length? Object.keys(r.warna).sort().map(w=>`<span class="chip" style="padding:2px 7px;font-size:11px;">${esc(w)} <b>${(+r.warna[w].toFixed(1))}</b></span>`).join(' ') : '';
+    return `<div class="card" style="box-shadow:none;border:1px solid var(--border);padding:14px;margin:0;">
+      <div class="card-title" style="margin-bottom:4px;"><span>👷 ${esc(r.nama)}</span><span class="badge badge-blue">${(+r.total.toFixed(1))} kd</span></div>
+      ${r.pek?.peran_utama?`<div class="muted" style="font-size:11px;margin-bottom:8px;">${esc(r.pek.peran_utama)}</div>`:'<div style="height:4px;"></div>'}
+      ${lines.length? lines.join('') : '<div class="muted" style="font-size:12px;">— tanpa borongan —</div>'}
+      ${lines.length?`<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);margin-top:6px;padding-top:6px;font-size:12.5px;"><span>Bruto</span><b>${rp(gross)}</b></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;padding-top:5px;"><span>Bon</span><input type="number" value="${bon||''}" placeholder="0" onchange="saveBon('${r.id}','${esc(r.nama)}',this.value)" style="width:100px;text-align:right;padding:5px 8px;border:1.5px solid var(--input-border);border-radius:7px;font-family:inherit;font-size:13px;"></div>
+      <div style="display:flex;justify-content:space-between;border-top:2px solid var(--border);margin-top:6px;padding-top:6px;font-weight:800;"><span>Dibayar</span><span style="color:var(--green-text)">${rp(net)}</span></div>`:''}
+      <div style="margin-top:8px;"><span class="muted" style="font-size:11px;">Obat ${(+r.obat.toFixed(1))}${tgt?` / tgt ${tgt}${st}`:''}</span></div>
+      ${warnaStr?`<div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;">${warnaStr}</div>`:''}
+    </div>`;
+  }).join('');
+
+  $('pekerja-rekap-list').innerHTML = header + (rows.length? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">${cards}</div>` : '<div class="empty">Belum ada aktivitas pada rentang ini</div>');
 }
+window.saveBon = async (pekId, nama, val) => {
+  const to=$('rekap-to').value; if(!to) return;
+  await setDoc(doc(db,'bon_pekerja',`${to}__${pekId}`), { tanggal:to, pekerja_id:pekId, pekerja_nama:nama, jumlah:num(val) });
+  loadPekerjaRekap();
+};
 
 // ===== STOK OBAT (pengambilan) =====
 function obatStats(b){
