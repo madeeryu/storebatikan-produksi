@@ -181,6 +181,7 @@
       <div class="pill-tab" id="hr-tabs">
         <button class="active" data-s="pagi" onclick="setHrTab('pagi')">🌅 Pagi</button>
         <button data-s="sore" onclick="setHrTab('sore')">🌇 Sore</button>
+        <button data-s="riwayat" onclick="setHrTab('riwayat')">📜 Riwayat</button>
       </div>
       <div id="hr-pagi">
         <div class="card">
@@ -188,7 +189,7 @@
           <div id="hr-target-list"></div>
         </div>
       </div>
-      <div class="card"><div class="card-title">Gerak <span id="hr-sesi-label">Pagi</span> Hari Ini</div><div id="hr-gerak-list"><div class="empty">Memuat…</div></div></div>
+      <div class="card"><div class="card-title" id="hr-gerak-title">Gerak Pagi Hari Ini</div><div id="hr-gerak-list"><div class="empty">Memuat…</div></div></div>
     </div>
 
     <!-- BATCH -->
@@ -265,7 +266,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, query, where, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, query, where, orderBy, limit, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDmBWaM-0Mj34FlQbOqkZR5nv6D0Vl5aIw",
@@ -302,9 +303,11 @@ const GERAK_PRESET = [
   {id:'beri_batik',   label:'Beri ke Pembatik (pagi)',               from:'lakar_blm_batik',to:'pembatikan',     cat:'batik', sesi:'pagi'},
   {id:'batik_bir',    label:'Batik selesai → Lakar sudah dibatik',   from:'pembatikan',    to:'lakar_sdh_batik', cat:'batik', sesi:'sore'},
   {id:'batik_ttb',    label:'Batik selesai → Tutuban',               from:'pembatikan',    to:'ttb',             cat:'batik', sesi:'sore'},
-  {id:'warna_dasar',  label:'Ngobat: warna dasar (Putian→Lakar dasar)',from:'putian',      to:'lakar_dasar',     cat:'obat',  sesi:'sore'},
+  {id:'warna_dasar',  label:'Ngobat: warna dasar Poman/PB (Putian→Lakar dasar)',from:'putian',to:'lakar_dasar', cat:'obat',  sesi:'sore'},
   {id:'lorod_dasar',  label:'Lorod dasar → Lakar belum dibatik',     from:'lakar_dasar',   to:'lakar_blm_batik', cat:'lorod', sesi:'sore'},
-  {id:'warna_br',     label:'Ngobat: warna (Lakar sdh batik→Lorod)', from:'lakar_sdh_batik',to:'lakar_lorod',    cat:'obat',  sesi:'sore'},
+  {id:'warna_pt',     label:'Ngobat: Putian Trusmi (warna) → Jemuran dalam',from:'putian',  to:'jemuran_dalam',   cat:'obat',  sesi:'sore', warna:true},
+  {id:'warna_pl',     label:'Ngobat: Putian Lebar (warna) → Tutuban',from:'putian',        to:'ttb',             cat:'obat',  sesi:'sore', warna:true},
+  {id:'warna_br',     label:'Ngobat: Bironan Poman (Lakar sdh batik→Lorod)',from:'lakar_sdh_batik',to:'lakar_lorod',cat:'obat', sesi:'sore', warna:true},
   {id:'warna_ttb_dlm',label:'Ngobat: tutuban → Jemuran dalam',       from:'ttb',           to:'jemuran_dalam',   cat:'obat',  sesi:'sore'},
   {id:'warna_ttb_lrd',label:'Ngobat: tutuban → Lakar lorod',         from:'ttb',           to:'lakar_lorod',     cat:'obat',  sesi:'sore'},
   {id:'lorod_dlm',    label:'Lorod → Jemuran dalam',                 from:'lakar_lorod',   to:'jemuran_dalam',   cat:'lorod', sesi:'sore'},
@@ -468,7 +471,23 @@ async function loadDashboard(){
 }
 
 // ===== INPUT HARIAN =====
-window.setHrTab = s => { hrTab=s; document.querySelectorAll('#hr-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.s===s)); $('hr-pagi').style.display = s==='pagi'?'':'none'; $('hr-sesi-label').textContent = s==='pagi'?'Pagi':'Sore'; renderGerakList(); };
+function fmtTgl(s){ if(!s) return '-'; const d=new Date(s); return isNaN(d)? s : d.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short'}); }
+window.setHrTab = s => { hrTab=s; document.querySelectorAll('#hr-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.s===s)); $('hr-pagi').style.display = s==='pagi'?'':'none'; if(s==='riwayat') loadRiwayatGerak(); else renderGerakList(); };
+async function loadRiwayatGerak(){
+  $('hr-gerak-title').textContent='Riwayat Gerak (semua tanggal)';
+  const el=$('hr-gerak-list'); el.innerHTML='<div class="empty">Memuat…</div>';
+  let rows;
+  try { const snap=await getDocs(query(collection(db,'gerak'), orderBy('created_ms','desc'), limit(300))); rows=snap.docs.map(d=>({id:d.id,...d.data()})); }
+  catch(e){ const snap=await getDocs(collection(db,'gerak')); rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0)).slice(0,300); }
+  if(!rows.length){ el.innerHTML='<div class="empty"><div class="ico">📜</div>Belum ada riwayat</div>'; return; }
+  const byDate={}; rows.forEach(g=>{ (byDate[g.tanggal||'-']=byDate[g.tanggal||'-']||[]).push(g); });
+  el.innerHTML = Object.keys(byDate).sort((a,b)=>b.localeCompare(a)).map(d=>{
+    const gs=byDate[d]; const tot=gs.reduce((s,g)=>s+(g.jumlah_kodi||0),0);
+    return `<div style="margin-bottom:14px;"><div style="font-weight:700;font-size:13px;margin-bottom:6px;">${esc(fmtTgl(d))} · ${gs.length} gerak · ${(+tot.toFixed(1))} kodi</div><div class="table-wrap"><table><thead><tr><th></th><th>Batch</th><th>Gerak</th><th>Warna</th><th>Oleh</th><th>Kodi</th></tr></thead><tbody>${
+      gs.map(g=>`<tr><td>${g.sesi==='pagi'?'🌅':'🌇'}</td><td>${esc(g.batch_kode||'-')}</td><td style="font-size:12px;">${esc(poolShort(g.from_pool)||'•')} → ${esc(poolShort(g.to_pool)||'•')}</td><td>${esc(g.warna_nama||'-')}</td><td>${esc(g.pekerja_nama||'-')}</td><td><b>${(+(g.jumlah_kodi||0).toFixed(2))}</b></td></tr>`).join('')
+    }</tbody></table></div></div>`;
+  }).join('');
+}
 async function loadHarian(){
   const tgl=$('hr-date').value||todayStr();
   const [tgSnap, gkSnap] = await Promise.all([
@@ -493,6 +512,8 @@ window.saveTargets = async () => {
   await wb.commit(); toast('Target tersimpan','success');
 };
 function renderGerakList(){
+  if(hrTab==='riwayat') return;
+  $('hr-gerak-title').textContent = 'Gerak '+(hrTab==='pagi'?'Pagi':'Sore')+' Hari Ini';
   const rows = dayGerak.filter(g=>(g.sesi||'sore')===hrTab).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0));
   const el=$('hr-gerak-list');
   if(!rows.length){ el.innerHTML='<div class="empty"><div class="ico">📋</div>Belum ada gerak '+hrTab+'</div>'; return; }
@@ -519,7 +540,7 @@ window.openGerakModal = async () => {
       <div class="form-group"><label class="form-label">Ke kolam</label><select class="form-control" id="gk-to"><option value="">— (keluar)</option>${poolOpts()}</select></div>
     </div>
     <div class="form-group"><label class="form-label">Batch</label><select class="form-control" id="gk-batch" onchange="gkWarnaRefresh()">${batchOpts}</select></div>
-    <div class="form-group" id="gk-warna-wrap"><label class="form-label">Warna (ditentukan saat ngobat, opsional)</label><select class="form-control" id="gk-warna"></select></div>
+    <div class="form-group" id="gk-warna-wrap"><label class="form-label" id="gk-warna-label">Warna (opsional)</label><select class="form-control" id="gk-warna"></select></div>
     <div class="grid-2">
       <div class="form-group"><label class="form-label">Pekerja</label><select class="form-control" id="gk-pekerja">${pekOpts}</select></div>
       <div class="form-group"><label class="form-label">Jumlah</label><div class="row-flex" style="flex-wrap:nowrap;gap:6px;"><input type="number" step="0.5" min="0" class="form-control" id="gk-kodi" style="flex:1;"><select class="form-control" id="gk-unit" style="width:84px;"><option value="kodi">kodi</option><option value="pcs">pcs</option></select></div></div>
@@ -535,6 +556,7 @@ window.openGerakModal = async () => {
 window.gkPresetChange = () => {
   const p=GERAK_PRESET.find(x=>x.id===$('gk-preset').value);
   $('gk-from').value=p.from||''; $('gk-to').value=p.to||''; $('gk-sesi').value=p.sesi;
+  $('gk-warna-label').innerHTML = p.warna ? 'Warna <span style="color:var(--red-text)">(WAJIB — bironan/PT/PL)</span>' : 'Warna (opsional)';
   gkWarnaRefresh();
 };
 window.gkWarnaRefresh = () => {
@@ -551,8 +573,9 @@ window.saveGerak = async () => {
   if(!b){ toast('Pilih batch','error'); return; }
   if(kodi<=0){ toast('Isi jumlah','error'); return; }
   if(!from && !to){ toast('Pilih kolam asal/tujuan','error'); return; }
-  const pekId=$('gk-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
   const warnaId=$('gk-warna').value, warna=warnaById(warnaId);
+  if(preset.warna && !warnaId){ toast('Pilih warna untuk pengobatan ini','error'); return; }
+  const pekId=$('gk-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
   const tgl=$('hr-date').value||todayStr();
   $('gk-save').disabled=true;
   try {
@@ -770,35 +793,46 @@ async function loadPekerjaRekap(){
   const from=$('rekap-from').value, to=$('rekap-to').value; if(!from||!to) return;
   const snap=await getDocs(query(collection(db,'gerak'), where('tanggal','>=',from), where('tanggal','<=',to)));
   const gks=snap.docs.map(d=>d.data());
-  const tarifCap=M.config?.hpp_tetap?.ngecap||0, tarifBatik=M.config?.hpp_tetap?.batik||0;
+  const cfg=_hppCfg();
   const days=Math.max(1, Math.round((new Date(to)-new Date(from))/86400000)+1);
-  // lump borongan (hasil selesai, tak peduli siapa yang dicatat)
-  const capKodi=gks.filter(isCapDone).reduce((s,g)=>s+(g.jumlah_kodi||0),0);
-  const batikKodi=gks.filter(isBatikDone).reduce((s,g)=>s+(g.jumlah_kodi||0),0);
-  const totalUpah=capKodi*tarifCap + batikKodi*tarifBatik;
-  // per pekerja
-  const byPek={}; gks.forEach(g=>{ if(!g.pekerja_id) return; const r=byPek[g.pekerja_id]=byPek[g.pekerja_id]||{nama:g.pekerja_nama,total:0,obat:0,cap:0,batik:0};
-    r.total+=g.jumlah_kodi||0; if(g.cat==='obat') r.obat+=g.jumlah_kodi||0; if(isCapDone(g)) r.cap+=g.jumlah_kodi||0; if(isBatikDone(g)) r.batik+=g.jumlah_kodi||0; });
-  M.pekerja.forEach(p=>{ if(!byPek[p.id]) byPek[p.id]={nama:p.nama,total:0,obat:0,cap:0,batik:0}; });
+  const capUpahOf = g => (g.jumlah_kodi||0) * ngecapKodi(g.golongan);
+  const batikRate = g => (g.to_pool==='ttb' ? (cfg.bt.ttb||0) : (cfg.bt.bironan||0)) * PCS_PER_KODI;
+  const batikUpahOf = g => (g.jumlah_kodi||0) * batikRate(g);
+  // lump borongan (hasil SELESAI, per golongan & jenis batik)
+  const capTot=gks.filter(isCapDone).reduce((s,g)=>s+(g.jumlah_kodi||0),0);
+  const birTot=gks.filter(g=>isBatikDone(g)&&g.to_pool==='lakar_sdh_batik').reduce((s,g)=>s+(g.jumlah_kodi||0),0);
+  const ttbTot=gks.filter(g=>isBatikDone(g)&&g.to_pool==='ttb').reduce((s,g)=>s+(g.jumlah_kodi||0),0);
+  const capUpah=gks.filter(isCapDone).reduce((s,g)=>s+capUpahOf(g),0);
+  const birUpah=birTot*((cfg.bt.bironan||0)*PCS_PER_KODI), ttbUpah=ttbTot*((cfg.bt.ttb||0)*PCS_PER_KODI);
+  const totalUpah=capUpah+birUpah+ttbUpah;
+  // per pekerja (+ rincian warna utk rekap bayaran)
+  const byPek={}; gks.forEach(g=>{ if(!g.pekerja_id) return; const r=byPek[g.pekerja_id]=byPek[g.pekerja_id]||{nama:g.pekerja_nama,total:0,obat:0,upah:0,warna:{}};
+    r.total+=g.jumlah_kodi||0; if(g.cat==='obat') r.obat+=g.jumlah_kodi||0;
+    if(isCapDone(g)) r.upah+=capUpahOf(g); if(isBatikDone(g)) r.upah+=batikUpahOf(g);
+    if(g.warna_nama) r.warna[g.warna_nama]=(r.warna[g.warna_nama]||0)+(g.jumlah_kodi||0); });
+  M.pekerja.forEach(p=>{ if(!byPek[p.id]) byPek[p.id]={nama:p.nama,total:0,obat:0,upah:0,warna:{}}; });
   const rows=Object.keys(byPek).map(k=>({...byPek[k], pek:M.pekerja.find(p=>p.id===k)})).sort((a,b)=>b.total-a.total);
 
   const upahCard=`<div class="card"><div class="card-title">💵 Upah Borongan <span class="muted" style="font-weight:500;font-size:12px;">${from===to?from:from+' → '+to}</span></div>
-    <div class="table-wrap"><table><thead><tr><th>Pekerjaan</th><th>Selesai</th><th>Tarif/kodi</th><th>Upah</th></tr></thead><tbody>
-      <tr><td>Pengecapan</td><td>${(+capKodi.toFixed(1))} kodi</td><td>${rp(tarifCap)}</td><td><b>${rp(capKodi*tarifCap)}</b></td></tr>
-      <tr><td>Pembatikan</td><td>${(+batikKodi.toFixed(1))} kodi</td><td>${rp(tarifBatik)}</td><td><b>${rp(batikKodi*tarifBatik)}</b></td></tr>
-      <tr style="font-weight:800"><td>Total borongan</td><td></td><td></td><td>${rp(totalUpah)}</td></tr>
+    <div class="table-wrap"><table><thead><tr><th>Pekerjaan</th><th>Selesai</th><th>Upah</th></tr></thead><tbody>
+      <tr><td>Pengecapan (per golongan)</td><td>${(+capTot.toFixed(1))} kodi</td><td><b>${rp(capUpah)}</b></td></tr>
+      <tr><td>Batik bironan</td><td>${(+birTot.toFixed(1))} kodi</td><td><b>${rp(birUpah)}</b></td></tr>
+      <tr><td>Batik tutuban</td><td>${(+ttbTot.toFixed(1))} kodi</td><td><b>${rp(ttbUpah)}</b></td></tr>
+      <tr style="font-weight:800"><td>Total borongan</td><td></td><td>${rp(totalUpah)}</td></tr>
     </tbody></table></div>
-    <div class="muted" style="font-size:12px;margin-top:8px;">Dihitung dari hasil <b>SELESAI</b> ("Pengecapan selesai"/"Batik selesai" yang diinput sore) — bukan mori yang diberi pagi. Tarif diambil dari menu <b>HPP</b> (Ngecap & Batik), bisa diubah di sana.</div></div>`;
+    <div class="muted" style="font-size:12px;margin-top:8px;">Dihitung dari hasil <b>SELESAI</b> sore (bukan mori pagi). Tarif ngecap per golongan & batik bironan/tutuban diambil dari menu <b>HPP</b>.</div></div>`;
 
-  const tableCard=`<div class="card"><div class="card-title">Rekap per Pekerja <span class="muted" style="font-weight:500;font-size:12px;">${days} hari</span></div>
-    <div class="table-wrap"><table><thead><tr><th>Pekerja</th><th>Aktivitas</th><th>Obat</th><th>Upah borongan</th><th>Target</th><th>Status</th></tr></thead><tbody>${
-    rows.map(r=>{ const upah=r.cap*tarifCap + r.batik*tarifBatik; const tgt=r.pek?.target_kodi, wajib=r.pek?.target_wajib;
-      let st='<span class="muted">—</span>'; if(tgt&&wajib){ st=(r.obat/days)>=tgt?'<span class="badge badge-green">Tercapai</span>':'<span class="badge badge-red">Kurang</span>'; }
-      return `<tr><td><b>${esc(r.nama)}</b> ${r.pek?.peran_utama?`<span class="muted" style="font-size:11px;">${esc(r.pek.peran_utama)}</span>`:''}</td><td>${(+r.total.toFixed(1))}</td><td>${(+r.obat.toFixed(1))}</td><td>${upah?('<b>'+rp(upah)+'</b>'):'<span class="muted">-</span>'}</td><td>${tgt?tgt+' kodi':'-'}</td><td>${st}</td></tr>`;
-    }).join('')
-  }</tbody></table></div>
-    <div class="muted" style="font-size:12px;margin-top:8px;">"Upah borongan" per orang hanya terisi bila pekerja dipilih saat input gerak selesai. Pengobat = harian (lihat kolom Obat vs Target).</div></div>`;
-  $('pekerja-rekap-list').innerHTML = upahCard + tableCard;
+  const perPekerja = `<div style="font-weight:700;margin:4px 0 10px;">Rekap per Pekerja <span class="muted" style="font-weight:500;font-size:12px;">${days} hari · warna untuk rekap bayaran</span></div>` +
+    rows.map(r=>{ const tgt=r.pek?.target_kodi, wajib=r.pek?.target_wajib;
+      let st=''; if(tgt&&wajib) st=(r.obat/days)>=tgt?' <span class="badge badge-green">Tercapai</span>':' <span class="badge badge-red">Kurang</span>';
+      const warnaStr=Object.keys(r.warna).length? Object.keys(r.warna).sort().map(w=>`<span class="chip">${esc(w)} <b>${(+r.warna[w].toFixed(1))}</b></span>`).join(' ') : '<span class="muted" style="font-size:12px;">—</span>';
+      return `<div class="card" style="box-shadow:none;border:1px solid var(--border);padding:14px;margin-bottom:10px;">
+        <div class="card-title"><span>👷 ${esc(r.nama)} ${r.pek?.peran_utama?`<span class="muted" style="font-size:11px;font-weight:500;">${esc(r.pek.peran_utama)}</span>`:''}</span><span class="badge badge-blue">${(+r.total.toFixed(1))} kodi</span></div>
+        <div class="muted" style="font-size:12px;margin-bottom:6px;">Obat ${(+r.obat.toFixed(1))}${tgt?` / target ${tgt}/hari${st}`:''}${r.upah?` · upah borongan ${rp(r.upah)}`:''}</div>
+        <div><span class="muted" style="font-size:11.5px;">Warna dikerjakan: </span>${warnaStr}</div>
+      </div>`;
+    }).join('');
+  $('pekerja-rekap-list').innerHTML = upahCard + perPekerja;
 }
 
 // ===== STOK OBAT (pengambilan) =====
