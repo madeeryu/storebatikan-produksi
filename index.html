@@ -524,7 +524,10 @@ window.openGerakModal = async () => {
       <div class="form-group"><label class="form-label">Pekerja</label><select class="form-control" id="gk-pekerja">${pekOpts}</select></div>
       <div class="form-group"><label class="form-label">Jumlah</label><div class="row-flex" style="flex-wrap:nowrap;gap:6px;"><input type="number" step="0.5" min="0" class="form-control" id="gk-kodi" style="flex:1;"><select class="form-control" id="gk-unit" style="width:84px;"><option value="kodi">kodi</option><option value="pcs">pcs</option></select></div></div>
     </div>
-    <div class="form-group"><label class="form-label">Sesi</label><select class="form-control" id="gk-sesi"><option value="pagi">🌅 Pagi</option><option value="sore" selected>🌇 Sore</option></select></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Sesi</label><select class="form-control" id="gk-sesi"><option value="pagi">🌅 Pagi</option><option value="sore" selected>🌇 Sore</option></select></div>
+      <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="gk-cat" placeholder="opsional"></div>
+    </div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="gk-save" onclick="saveGerak()">Simpan Gerak</button>`);
   $('gk-batch').value = batches[0].id;
   gkPresetChange();
@@ -555,7 +558,7 @@ window.saveGerak = async () => {
   try {
     const wb=writeBatch(db);
     applyGerak(wb, b.id, from, to, kodi);
-    wb.set(doc(collection(db,'gerak')), { tanggal:tgl, sesi:$('gk-sesi').value, jenis_preset:preset.id, jenis_label:preset.label, cat:preset.cat, batch_id:b.id, batch_kode:b.kode, golongan:b.golongan, from_pool:from, to_pool:to, warna_id:warnaId||null, warna_nama:warna?.nama||'', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'', jumlah_kodi:kodi, input_jumlah:inputJml, input_satuan:unit, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
+    wb.set(doc(collection(db,'gerak')), { tanggal:tgl, sesi:$('gk-sesi').value, jenis_preset:preset.id, jenis_label:preset.label, cat:preset.cat, batch_id:b.id, batch_kode:b.kode, golongan:b.golongan, from_pool:from, to_pool:to, warna_id:warnaId||null, warna_nama:warna?.nama||'', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'', jumlah_kodi:kodi, input_jumlah:inputJml, input_satuan:unit, catatan:($('gk-cat')?.value||'').trim(), created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
     await wb.commit();
     toast('Gerak tercatat ✅','success'); closeHostModal(); loadHarian();
   } catch(e){ toast('Gagal: '+e.message,'error'); $('gk-save').disabled=false; }
@@ -628,7 +631,9 @@ async function loadBatchList(){
       <div class="muted" style="font-size:12.5px;margin-bottom:8px;">Mulai ${esc(b.tanggal_mulai||'-')} · Target ${b.total_kodi||0} kodi · Selesai ${(+selesai.toFixed(1))} kodi</div>
       <div class="row-flex" style="margin-bottom:10px;">${cells||'<span class="muted" style="font-size:12px;">belum ada stok berjalan</span>'}</div>
       <div class="row-flex">
-        ${b.status!=='selesai'?`<button class="btn btn-primary btn-sm" onclick="openStokModal('${b.id}')">✏️ Atur Stok</button>`:''}
+        ${b.status!=='selesai'?`<button class="btn btn-primary btn-sm" onclick="openKoreksiModal('${b.id}')">± Stok</button>`:''}
+        ${b.status!=='selesai'?`<button class="btn btn-outline btn-sm" onclick="openStokModal('${b.id}')">✏️ Atur Stok</button>`:''}
+        <button class="btn btn-outline btn-sm" onclick="openRiwayatStok('${b.id}')">📜 Riwayat</button>
         ${selesai>0?`<button class="btn btn-outline btn-sm" onclick="openGrosirModal('${b.id}')">→ Kirim ke Grosir</button>`:''}
         ${b.status!=='selesai'?`<button class="btn btn-outline btn-sm" onclick="finishBatch('${b.id}')">Tandai Selesai</button>`:''}
         <button class="btn btn-danger btn-sm" onclick="delBatch('${b.id}')">Hapus</button>
@@ -683,6 +688,48 @@ window.saveStokManual = async (batchId) => {
       wb.set(doc(db,'stok_proses',stokId(batchId,pool)), { batch_id:batchId, pool, jumlah_kodi:val, updated_at:serverTimestamp() }, {merge:true}); });
     await wb.commit(); toast('Stok diperbarui ✅','success'); closeHostModal(); loadBatchList();
   } catch(e){ toast('Gagal: '+e.message,'error'); $('st-save').disabled=false; }
+};
+// Koreksi manual tambah/kurang per kolam (tercatat di riwayat)
+window.openKoreksiModal = (batchId) => {
+  const poolOpts=POOLS.map(p=>`<option value="${p.id}">${esc(p.label)}</option>`).join('');
+  const pekOpts='<option value="">— (opsional)</option>'+M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
+  showModal('± Stok Manual', `
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Kolam</label><select class="form-control" id="kr-pool">${poolOpts}</select></div>
+      <div class="form-group"><label class="form-label">Aksi</label><select class="form-control" id="kr-mode"><option value="kurang">− Kurang (keluar)</option><option value="tambah">+ Tambah (masuk)</option></select></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Jumlah</label><div class="row-flex" style="flex-wrap:nowrap;gap:6px;"><input type="number" step="0.5" min="0" class="form-control" id="kr-jml" style="flex:1;"><select class="form-control" id="kr-unit" style="width:84px;"><option value="kodi">kodi</option><option value="pcs">pcs</option></select></div></div>
+      <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="kr-tgl" value="${todayStr()}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Oleh / diambil siapa</label><select class="form-control" id="kr-pekerja">${pekOpts}</select></div>
+    <div class="form-group"><label class="form-label">Keterangan (keluar ke mana / alasan)</label><input class="form-control" id="kr-cat" placeholder="mis. dijual, rusak, koreksi hitung"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="kr-save" onclick="saveKoreksi('${batchId}')">Simpan</button>`);
+};
+window.saveKoreksi = async (batchId) => {
+  const pool=$('kr-pool').value, mode=$('kr-mode').value;
+  const unit=$('kr-unit').value, inputJml=num($('kr-jml').value), kodi = unit==='pcs'? inputJml/PCS_PER_KODI : inputJml;
+  if(kodi<=0){ toast('Isi jumlah','error'); return; }
+  const pekId=$('kr-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
+  const tgl=$('kr-tgl').value, cat=$('kr-cat').value.trim();
+  const from = mode==='kurang'? pool : null, to = mode==='tambah'? pool : null;
+  $('kr-save').disabled=true;
+  try {
+    const b=(await getDoc(doc(db,'batch',batchId))).data();
+    const wb=writeBatch(db);
+    applyGerak(wb, batchId, from, to, kodi);
+    wb.set(doc(collection(db,'gerak')), { tanggal:tgl, sesi:'sore', jenis_preset:'koreksi', jenis_label:(mode==='tambah'?'Koreksi + masuk · ':'Koreksi − keluar · ')+poolLabel(pool), cat:'lain', batch_id:batchId, batch_kode:b?.kode||'', golongan:b?.golongan||null, from_pool:from, to_pool:to, warna_id:null, warna_nama:'', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'', jumlah_kodi:kodi, input_jumlah:inputJml, input_satuan:unit, catatan:cat, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
+    await wb.commit();
+    toast('Stok disesuaikan ✅','success'); closeHostModal(); loadBatchList();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('kr-save').disabled=false; }
+};
+window.openRiwayatStok = async (batchId) => {
+  const b=(await getDoc(doc(db,'batch',batchId))).data();
+  const snap=await getDocs(query(collection(db,'gerak'), where('batch_id','==',batchId)));
+  const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0));
+  showModal('Riwayat Stok — '+(b?.kode||''), rows.length? `<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Gerak</th><th>Warna</th><th>Oleh</th><th>Kodi</th><th>Ket.</th></tr></thead><tbody>${
+    rows.map(g=>`<tr><td>${esc(g.tanggal||'-')}</td><td style="font-size:12.5px;">${esc(poolShort(g.from_pool)||'•')} <span class="flow-arrow">→</span> ${esc(poolShort(g.to_pool)||'•')}<div class="muted" style="font-size:10.5px;">${esc(g.jenis_label||'')}</div></td><td>${esc(g.warna_nama||'-')}</td><td>${esc(g.pekerja_nama||'-')}</td><td><b>${(+(g.jumlah_kodi||0).toFixed(2))}</b>${g.input_satuan==='pcs'?` <span class="muted">(${g.input_jumlah}pcs)</span>`:''}</td><td class="muted" style="font-size:11.5px;">${esc(g.catatan||'')}</td></tr>`).join('')
+  }</tbody></table></div>` : '<div class="empty">Belum ada riwayat</div>', `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button>`);
 };
 
 // ===== GROSIR =====
