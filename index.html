@@ -139,13 +139,9 @@
     <div class="sidebar-logo"><div class="brand">🎨 Batik AN</div><div class="sub">Monitoring Produksi</div></div>
     <nav class="sidebar-nav">
       <div class="nav-section">Utama</div>
-      <a class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">📊 Dashboard</a>
-      <a class="nav-item" data-page="harian" onclick="navigateTo('harian')">📋 Input Harian</a>
-      <a class="nav-item" data-page="batch" onclick="navigateTo('batch')">🧵 Batch</a>
-      <div class="nav-section">Monitoring</div>
-      <a class="nav-item" data-page="pekerja-rekap" onclick="navigateTo('pekerja-rekap')">👷 Hasil &amp; Upah</a>
+      <a class="nav-item active" data-page="upah" onclick="navigateTo('upah')">💵 Upah</a>
+      <a class="nav-item" data-page="stok-manual" onclick="navigateTo('stok-manual')">📦 Stok Proses</a>
       <a class="nav-item" data-page="bahan" onclick="navigateTo('bahan')">🧪 Stok Obat <span class="badge badge-red hidden" id="bahan-badge" style="margin-left:auto;">0</span></a>
-      <a class="nav-item" data-page="hpp" onclick="navigateTo('hpp')">💰 HPP</a>
       <div class="nav-section">Pengaturan</div>
       <a class="nav-item" data-page="master" onclick="navigateTo('master')">⚙️ Master Data</a>
     </nav>
@@ -163,8 +159,31 @@
   </div>
 
   <main id="main-content">
+
+    <!-- ===== UPAH (manual) ===== -->
+    <div class="page active" id="page-upah">
+      <div class="page-header"><div class="page-title">💵 Upah</div><div class="page-subtitle">Input upah manual · tarif dari Master Data</div></div>
+      <div class="row-flex" style="margin-bottom:14px;align-items:center;">
+        <button class="btn btn-outline btn-sm" onclick="shiftUpahDate(-1)">◀</button>
+        <input type="date" id="upah-date" class="form-control" style="max-width:180px;" onchange="loadUpah()" />
+        <button class="btn btn-outline btn-sm" onclick="shiftUpahDate(1)">▶</button>
+        <button class="btn btn-outline btn-sm" onclick="upahToday()">Hari ini</button>
+        <button class="btn btn-primary" onclick="openUpahModal()">+ Tambah Upah</button>
+      </div>
+      <div id="upah-list"><div class="empty">Memuat…</div></div>
+    </div>
+
+    <!-- ===== STOK PROSES (manual) ===== -->
+    <div class="page" id="page-stok-manual">
+      <div class="page-header"><div class="page-title">📦 Stok Proses</div><div class="page-subtitle">Pantau stok lakar dll secara manual</div></div>
+      <div class="row-flex" style="margin-bottom:14px;">
+        <button class="btn btn-primary" onclick="openStokItemModal()">+ Item Stok</button>
+      </div>
+      <div id="stok-manual-list"><div class="empty">Memuat…</div></div>
+    </div>
+
     <!-- DASHBOARD -->
-    <div class="page active" id="page-dashboard">
+    <div class="page" id="page-dashboard">
       <div class="page-header"><div class="page-title">Dashboard Produksi</div><div class="page-subtitle" id="dash-date">—</div></div>
       <div class="stat-grid" id="dash-pools"></div>
       <div class="card"><div class="card-title">🎯 Target vs Hasil Pengobat — Hari Ini</div><div id="dash-target"></div></div>
@@ -245,11 +264,8 @@
         <button class="btn btn-primary" id="btn-seed" onclick="seedAll()">Isi Data Awal</button>
       </div>
       <div class="pill-tab" id="master-tabs">
-        <button class="active" data-m="golongan" onclick="setMasterTab('golongan')">Golongan/Tipe</button>
-        <button data-m="warna" onclick="setMasterTab('warna')">Warna</button>
+        <button class="active" data-m="upah" onclick="setMasterTab('upah')">Tarif Upah</button>
         <button data-m="pekerja" onclick="setMasterTab('pekerja')">Pekerja</button>
-        <button data-m="biaya" onclick="setMasterTab('biaya')">Biaya Obat</button>
-        <button data-m="ambang" onclick="setMasterTab('ambang')">Ambang</button>
       </div>
       <div id="master-content"><div class="empty">Memuat…</div></div>
     </div>
@@ -324,7 +340,7 @@ const PCS_PER_KODI = 20; // 1 kodi = 20 pcs/lembar
 // ===== STATE =====
 let currentUser=null, currentUserData=null;
 const M = { golongan:[], tipe:[], warna:[], pekerja:[], bahan:[], pengambilan:[], config:null };
-let hrTab='pagi', batchTab='berjalan', masterTab='golongan';
+let hrTab='pagi', batchTab='berjalan', masterTab='upah';
 let dayStok=null, dayGerak=[];
 
 // ===== HELPERS =====
@@ -364,17 +380,19 @@ async function showApp(){
   $('sidebar-username').textContent=nm; $('sidebar-role').textContent= role==='owner'?'👑 Owner':'👤 Karyawan';
   $('sidebar-avatar').textContent=(nm[0]||'U').toUpperCase();
   await loadAllMaster();
-  navigateTo('dashboard');
+  navigateTo('upah');
 }
 
 // ===== NAV =====
-const pageTitles={ dashboard:'Dashboard', harian:'Input Harian', batch:'Batch', 'pekerja-rekap':'Hasil Pekerja', bahan:'Stok Obat', hpp:'HPP', master:'Master Data' };
+const pageTitles={ upah:'Upah', 'stok-manual':'Stok Proses', dashboard:'Dashboard', harian:'Input Harian', batch:'Batch', 'pekerja-rekap':'Hasil Pekerja', bahan:'Stok Obat', hpp:'HPP', master:'Master Data' };
 window.navigateTo = (page) => {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   $('page-'+page)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.page===page));
   $('mobile-page-title').textContent = pageTitles[page]||'';
   closeMobileSidebar();
+  if(page==='upah'){ if(!$('upah-date').value) $('upah-date').value=todayStr(); loadUpah(); }
+  if(page==='stok-manual') loadStokManual();
   if(page==='dashboard') loadDashboard();
   if(page==='harian'){ if(!$('hr-date').value) $('hr-date').value=todayStr(); loadHarian(); }
   if(page==='batch') loadBatchList();
@@ -963,30 +981,31 @@ window.delAmbil = async (pid,bid) => { if(!confirm('Hapus catatan pengambilan in
 // ===== HPP (per tipe & warna) =====
 function _hppCfg(){ const c=M.config||{}; return {
   hargaKain: c.harga_kain_per_yard ?? 12100,
-  obatTk: c.obat_tk ?? c.hpp_tetap?.obat_tk ?? 110000,
-  lainnya: c.lainnya ?? c.hpp_tetap?.lainnya ?? 130900,
+  wCap: c.hpp_wcap ?? 70000,
+  wBatik: c.hpp_wbatik ?? 40000,
+  wObat: c.hpp_wobat ?? c.obat_tk ?? 110000,
+  operasional: c.operasional ?? c.lainnya ?? c.hpp_tetap?.lainnya ?? 126400,
+  transport: c.transport ?? 18000,
   ng: c.upah_ngecap_pcs || {poman:3000, lebar:2750, trusmian_minggiri:500, trusmian_nengai:3000},
   bt: c.upah_batik_pcs || {bironan:1500, ttb:2000},
   biaya: c.biaya_obat_warna || {}
 }; }
-function ngecapKodi(gol){ const {ng}=_hppCfg(); if(gol==='trusmian') return ((ng.trusmian_minggiri||0)+(ng.trusmian_nengai||0))*PCS_PER_KODI; return (ng[gol]||0)*PCS_PER_KODI; }
-function batikKodi(gol, warnaNama){ const {bt}=_hppCfg(); const ttb = gol==='poman' ? ['Putih','Coklat'].includes(warnaNama) : true; return (ttb?(bt.ttb||0):(bt.bironan||0))*PCS_PER_KODI; }
 function kainKodi(tipe){ return (tipe?.panjang_mori||0)*_hppCfg().hargaKain; }
-function hppKodi(gol, tipe, warnaNama){ const {obatTk,lainnya,biaya}=_hppCfg(); return kainKodi(tipe)+ngecapKodi(gol)+batikKodi(gol,warnaNama)+obatTk+lainnya+(biaya[warnaNama]||0); }
+function hppTetapNonMori(){ const c=_hppCfg(); return c.wCap+c.wBatik+c.wObat+c.operasional+c.transport; }
+function hppTetap(tipe){ return hppTetapNonMori()+kainKodi(tipe); }
+function hppKodi(gol, tipe, warnaNama){ return hppTetap(tipe)+(_hppCfg().biaya[warnaNama]||0); }
 function loadHpp(){
-  const c=_hppCfg();
+  const c=_hppCfg(); const sub=hppTetapNonMori();
   $('hpp-config').innerHTML=`<div class="table-wrap"><table><tbody>
-    <tr><td>Harga kain / yard</td><td style="text-align:right">${rp(c.hargaKain)}</td></tr>
-    <tr><td>Tenaga Obat / kodi</td><td style="text-align:right">${rp(c.obatTk)}</td></tr>
-    <tr><td>Lainnya / kodi</td><td style="text-align:right">${rp(c.lainnya)}</td></tr>
-    <tr><td>Ngecap Poman /pcs</td><td style="text-align:right">${rp(c.ng.poman)}</td></tr>
-    <tr><td>Ngecap Lebar /pcs</td><td style="text-align:right">${rp(c.ng.lebar)}</td></tr>
-    <tr><td>Ngecap Trusmi /pcs</td><td style="text-align:right">minggiri ${rp(c.ng.trusmian_minggiri)} + nengai ${rp(c.ng.trusmian_nengai)}</td></tr>
-    <tr><td>Batik bironan /pcs</td><td style="text-align:right">${rp(c.bt.bironan)}</td></tr>
-    <tr><td>Batik tutuban /pcs</td><td style="text-align:right">${rp(c.bt.ttb)}</td></tr>
-  </tbody></table></div>`;
-  $('hpp-mori').innerHTML = M.tipe.length? `<table><thead><tr><th>Golongan</th><th>Tipe</th><th>Mori (yard)</th><th>Kain/kodi</th></tr></thead><tbody>${
-    M.tipe.map(t=>`<tr><td>${esc(golNama(t.golongan))}</td><td>${esc(t.nama)}</td><td><input type="number" step="0.1" class="form-control mori-inp" data-id="${t.id}" value="${t.panjang_mori||''}" style="width:110px;"></td><td>${rp((t.panjang_mori||0)*c.hargaKain)}</td></tr>`).join('')
+    <tr><td>W. Cap (tukang cap)</td><td class="muted" style="font-size:12px;">upah borongan</td><td style="text-align:right">${rp(c.wCap)}</td></tr>
+    <tr><td>W. Batik (tukang batik)</td><td class="muted" style="font-size:12px;">upah borongan</td><td style="text-align:right">${rp(c.wBatik)}</td></tr>
+    <tr><td>W. Obat (tim pengobatan)</td><td class="muted" style="font-size:12px;">3 ngobat + 1 ngelorod</td><td style="text-align:right">${rp(c.wObat)}</td></tr>
+    <tr><td>Operasional</td><td class="muted" style="font-size:12px;">malam, solda, plastik, minyak, kaporit</td><td style="text-align:right">${rp(c.operasional)}</td></tr>
+    <tr><td>Transport</td><td class="muted" style="font-size:12px;">(100rb+80rb)/10 kodi</td><td style="text-align:right">${rp(c.transport)}</td></tr>
+    <tr style="font-weight:800"><td>Subtotal (tanpa mori)</td><td></td><td style="text-align:right">${rp(sub)}</td></tr>
+  </tbody></table></div><div class="muted" style="font-size:12px;margin-top:8px;">Mori dihitung per tipe (kain ${rp(c.hargaKain)}/yard). <b>TOTAL TETAP = subtotal + mori tipe</b>. HPP per warna = TOTAL TETAP + obat warna.</div>`;
+  $('hpp-mori').innerHTML = M.tipe.length? `<table><thead><tr><th>Golongan</th><th>Tipe</th><th>Mori (yard)</th><th>Kain/kodi</th><th>TOTAL TETAP/kodi</th></tr></thead><tbody>${
+    M.tipe.map(t=>`<tr><td>${esc(golNama(t.golongan))}</td><td>${esc(t.nama)}</td><td><input type="number" step="0.1" class="form-control mori-inp" data-id="${t.id}" value="${t.panjang_mori||''}" style="width:100px;"></td><td>${rp(kainKodi(t))}</td><td><b>${rp(hppTetap(t))}</b></td></tr>`).join('')
   }</tbody></table>` : '<div class="muted" style="font-size:13px;">Belum ada tipe.</div>';
   let html='';
   M.golongan.forEach(g=>{
@@ -994,9 +1013,9 @@ function loadHpp(){
     let warnas=M.warna.filter(w=>w.golongan===g.id); if(!warnas.length) warnas=[{nama:'(umum)'}];
     html += `<div style="font-weight:800;margin:16px 0 4px;">${esc(g.nama)}</div>`;
     tipes.forEach(t=>{
-      html += `<div class="muted" style="font-weight:700;font-size:12.5px;margin:10px 0 4px;">${esc(t.nama)} · mori ${t.panjang_mori||'-'} yd · kain ${rp(kainKodi(t))}/kodi · ngecap ${rp(ngecapKodi(g.id))}/kodi</div>
-        <table><thead><tr><th>Warna</th><th>Batik</th><th>Obat warna</th><th>HPP/kodi</th><th>≈ /pcs</th></tr></thead><tbody>${
-        warnas.map(w=>{ const hpp=hppKodi(g.id,t,w.nama); return `<tr><td>${esc(w.nama)}</td><td style="text-align:right">${rp(batikKodi(g.id,w.nama))}</td><td style="text-align:right">${rp(c.biaya[w.nama]||0)}</td><td style="text-align:right"><b>${rp(hpp)}</b></td><td style="text-align:right">${rp(hpp/PCS_PER_KODI)}</td></tr>`; }).join('')
+      html += `<div class="muted" style="font-weight:700;font-size:12.5px;margin:10px 0 4px;">${esc(t.nama)} · mori ${t.panjang_mori||'-'} yd · TOTAL TETAP ${rp(hppTetap(t))}/kodi</div>
+        <table><thead><tr><th>Warna</th><th>Obat warna</th><th>HPP/kodi</th><th>≈ /pcs</th></tr></thead><tbody>${
+        warnas.map(w=>{ const hpp=hppKodi(g.id,t,w.nama); return `<tr><td>${esc(w.nama)}</td><td style="text-align:right">${rp(c.biaya[w.nama]||0)}</td><td style="text-align:right"><b>${rp(hpp)}</b></td><td style="text-align:right">${rp(hpp/PCS_PER_KODI)}</td></tr>`; }).join('')
       }</tbody></table>`;
     });
   });
@@ -1008,30 +1027,40 @@ window.saveMori = async () => {
   if(n){ await wb.commit(); await loadAllMaster(); } loadHpp(); toast('Panjang mori tersimpan','success');
 };
 window.openHppConfigModal = () => { const c=_hppCfg();
-  showModal('Ubah Biaya & Upah', `
+  showModal('Ubah Komponen HPP', `
+    <div style="font-weight:700;font-size:13px;margin:0 0 4px;">Komponen Tetap (per kodi)</div>
     <div class="grid-2">
-      <div class="form-group"><label class="form-label">Harga kain / yard</label><input type="number" class="form-control" id="hc-kain" value="${c.hargaKain}"></div>
-      <div class="form-group"><label class="form-label">Tenaga Obat / kodi</label><input type="number" class="form-control" id="hc-obat" value="${c.obatTk}"></div>
+      <div class="form-group"><label class="form-label">W. Cap (tukang cap)</label><input type="number" class="form-control" id="hc-wcap" value="${c.wCap}"></div>
+      <div class="form-group"><label class="form-label">W. Batik (tukang batik)</label><input type="number" class="form-control" id="hc-wbatik" value="${c.wBatik}"></div>
     </div>
-    <div class="form-group"><label class="form-label">Lainnya / kodi</label><input type="number" class="form-control" id="hc-lain" value="${c.lainnya}"></div>
-    <div style="font-weight:700;font-size:13px;margin:8px 0 4px;">Upah Ngecap (per pcs)</div>
     <div class="grid-2">
-      <div class="form-group"><label class="form-label">Poman</label><input type="number" class="form-control" id="hc-ng-poman" value="${c.ng.poman}"></div>
-      <div class="form-group"><label class="form-label">Lebar</label><input type="number" class="form-control" id="hc-ng-lebar" value="${c.ng.lebar}"></div>
+      <div class="form-group"><label class="form-label">W. Obat (tim pengobatan)</label><input type="number" class="form-control" id="hc-wobat" value="${c.wObat}"></div>
+      <div class="form-group"><label class="form-label">Harga kain / yard</label><input type="number" class="form-control" id="hc-kain" value="${c.hargaKain}"></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Operasional / kodi</label><input type="number" class="form-control" id="hc-oper" value="${c.operasional}"></div>
+      <div class="form-group"><label class="form-label">Transport / kodi</label><input type="number" class="form-control" id="hc-trans" value="${c.transport}"></div>
+    </div>
+    <div class="muted" style="font-size:11.5px;margin-bottom:6px;">Mori (kain) dihitung per tipe dari panjang mori × harga kain/yard di tabel bawah.</div>
+    <div style="font-weight:700;font-size:13px;margin:8px 0 4px;border-top:1px solid var(--border);padding-top:10px;">Upah Aktual Pekerja (per pcs — untuk rekap bayaran)</div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Ngecap Poman</label><input type="number" class="form-control" id="hc-ng-poman" value="${c.ng.poman}"></div>
+      <div class="form-group"><label class="form-label">Ngecap Lebar</label><input type="number" class="form-control" id="hc-ng-lebar" value="${c.ng.lebar}"></div>
     </div>
     <div class="grid-2">
       <div class="form-group"><label class="form-label">Trusmi minggiri</label><input type="number" class="form-control" id="hc-ng-mng" value="${c.ng.trusmian_minggiri}"></div>
       <div class="form-group"><label class="form-label">Trusmi nengai</label><input type="number" class="form-control" id="hc-ng-ng" value="${c.ng.trusmian_nengai}"></div>
     </div>
-    <div style="font-weight:700;font-size:13px;margin:8px 0 4px;">Upah Batik (per pcs)</div>
     <div class="grid-2">
-      <div class="form-group"><label class="form-label">Bironan</label><input type="number" class="form-control" id="hc-bt-bir" value="${c.bt.bironan}"></div>
-      <div class="form-group"><label class="form-label">Tutuban</label><input type="number" class="form-control" id="hc-bt-ttb" value="${c.bt.ttb}"></div>
+      <div class="form-group"><label class="form-label">Batik bironan</label><input type="number" class="form-control" id="hc-bt-bir" value="${c.bt.bironan}"></div>
+      <div class="form-group"><label class="form-label">Batik tutuban</label><input type="number" class="form-control" id="hc-bt-ttb" value="${c.bt.ttb}"></div>
     </div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveHppConfig()">Simpan</button>`);
 };
 window.saveHppConfig = async () => {
-  const patch = { harga_kain_per_yard:num($('hc-kain').value), obat_tk:num($('hc-obat').value), lainnya:num($('hc-lain').value),
+  const patch = { harga_kain_per_yard:num($('hc-kain').value),
+    hpp_wcap:num($('hc-wcap').value), hpp_wbatik:num($('hc-wbatik').value), hpp_wobat:num($('hc-wobat').value),
+    operasional:num($('hc-oper').value), transport:num($('hc-trans').value),
     upah_ngecap_pcs:{ poman:num($('hc-ng-poman').value), lebar:num($('hc-ng-lebar').value), trusmian_minggiri:num($('hc-ng-mng').value), trusmian_nengai:num($('hc-ng-ng').value) },
     upah_batik_pcs:{ bironan:num($('hc-bt-bir').value), ttb:num($('hc-bt-ttb').value) } };
   await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), ...patch}, {merge:true}); M.config={...(M.config||{}), ...patch}; toast('Tersimpan','success'); closeHostModal(); loadHpp();
@@ -1040,14 +1069,55 @@ window.saveHppConfig = async () => {
 // ===== MASTER =====
 window.setMasterTab = t => { masterTab=t; document.querySelectorAll('#master-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.m===t)); renderMaster(); };
 function renderMaster(){
-  $('seed-card').style.display=M.golongan.length?'none':'block';
+  $('seed-card').style.display=M.pekerja.length?'none':'block';
   const el=$('master-content');
-  if(masterTab==='golongan') el.innerHTML=renderGolongan();
-  else if(masterTab==='warna') el.innerHTML=renderWarna();
+  if(masterTab==='upah') el.innerHTML=renderUpahRates();
   else if(masterTab==='pekerja') el.innerHTML=renderPekerja();
+  else if(masterTab==='golongan') el.innerHTML=renderGolongan();
+  else if(masterTab==='warna') el.innerHTML=renderWarna();
   else if(masterTab==='biaya') el.innerHTML=renderBiaya();
   else if(masterTab==='ambang') el.innerHTML=renderAmbang();
+  else el.innerHTML=renderUpahRates();
 }
+function renderUpahRates(){
+  const c=_hppCfg();
+  return `<div class="card"><div class="card-title">Tarif Pengecap (per pcs) <button class="btn btn-outline btn-sm" onclick="openUpahRateModal()">Ubah</button></div>
+    <div class="table-wrap"><table><tbody>
+      <tr><td>Poman / Kelir</td><td style="text-align:right">${rp(c.ng.poman)}</td></tr>
+      <tr><td>Lebar</td><td style="text-align:right">${rp(c.ng.lebar)}</td></tr>
+      <tr><td>Trusmi — minggiri</td><td style="text-align:right">${rp(c.ng.trusmian_minggiri)}</td></tr>
+      <tr><td>Trusmi — nengai</td><td style="text-align:right">${rp(c.ng.trusmian_nengai)}</td></tr>
+    </tbody></table></div></div>
+    <div class="card"><div class="card-title">Tarif Pembatik (per pcs) <button class="btn btn-outline btn-sm" onclick="openUpahRateModal()">Ubah</button></div>
+    <div class="table-wrap"><table><tbody>
+      <tr><td>Bironan</td><td style="text-align:right">${rp(c.bt.bironan)}</td></tr>
+      <tr><td>Tutuban</td><td style="text-align:right">${rp(c.bt.ttb)}</td></tr>
+    </tbody></table></div><div class="muted" style="font-size:12px;margin-top:8px;">Tarif ini dipakai untuk menghitung upah di menu <b>💵 Upah</b>.</div></div>`;
+}
+window.openUpahRateModal = () => { const c=_hppCfg();
+  showModal('Ubah Tarif Upah (per pcs)', `
+    <div style="font-weight:700;font-size:13px;margin:0 0 4px;">Pengecap</div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Poman</label><input type="number" class="form-control" id="ur-poman" value="${c.ng.poman}"></div>
+      <div class="form-group"><label class="form-label">Lebar</label><input type="number" class="form-control" id="ur-lebar" value="${c.ng.lebar}"></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Trusmi minggiri</label><input type="number" class="form-control" id="ur-mng" value="${c.ng.trusmian_minggiri}"></div>
+      <div class="form-group"><label class="form-label">Trusmi nengai</label><input type="number" class="form-control" id="ur-ng" value="${c.ng.trusmian_nengai}"></div>
+    </div>
+    <div style="font-weight:700;font-size:13px;margin:8px 0 4px;border-top:1px solid var(--border);padding-top:10px;">Pembatik</div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Bironan</label><input type="number" class="form-control" id="ur-bir" value="${c.bt.bironan}"></div>
+      <div class="form-group"><label class="form-label">Tutuban</label><input type="number" class="form-control" id="ur-ttb" value="${c.bt.ttb}"></div>
+    </div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveUpahRate()">Simpan</button>`);
+};
+window.saveUpahRate = async () => {
+  const patch={ upah_ngecap_pcs:{ poman:num($('ur-poman').value), lebar:num($('ur-lebar').value), trusmian_minggiri:num($('ur-mng').value), trusmian_nengai:num($('ur-ng').value) },
+    upah_batik_pcs:{ bironan:num($('ur-bir').value), ttb:num($('ur-ttb').value) } };
+  await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), ...patch}, {merge:true}); M.config={...(M.config||{}), ...patch};
+  toast('Tarif tersimpan','success'); closeHostModal(); renderMaster();
+};
 function renderGolongan(){
   return `<div class="card"><div class="card-title">Golongan & Tipe <button class="btn btn-outline btn-sm" onclick="openTipeModal()">+ Tipe</button></div>`+
     M.golongan.map(g=>`<div style="margin-bottom:10px;"><b>${esc(g.nama)}</b><div class="row-flex" style="margin-top:6px;">${M.tipe.filter(t=>t.golongan===g.id).map(t=>`<span class="chip">${esc(t.nama)} <span style="cursor:pointer;color:var(--red-text);" onclick="delDoc('tipe_produk','${t.id}')">✕</span></span>`).join('')||'<span class="muted" style="font-size:12px;">belum ada tipe</span>'}</div></div>`).join('')+`</div>`;
@@ -1110,6 +1180,127 @@ window.openAmbangModal = () => { const a=M.config?.ambang_pool??5;
 window.saveAmbang = async () => { const v=num($('amb-val').value)||5; await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), ambang_pool:v}, {merge:true}); M.config={...(M.config||{}), ambang_pool:v}; toast('Tersimpan','success'); closeHostModal(); renderMaster(); };
 window.delDoc = async (col,id) => { if(!confirm('Hapus data ini?')) return; await deleteDoc(doc(db,col,id)); await loadAllMaster(); renderMaster(); toast('Dihapus'); };
 
+// ===== UPAH (manual, tarif dari Master) =====
+function upahJenisList(){ const c=_hppCfg(); return [
+  {id:'cap_poman',    grup:'Pengecap', label:'Cap Poman',           rate:c.ng.poman||0},
+  {id:'cap_lebar',    grup:'Pengecap', label:'Cap Lebar',           rate:c.ng.lebar||0},
+  {id:'cap_minggiri', grup:'Pengecap', label:'Cap Trusmi minggiri', rate:c.ng.trusmian_minggiri||0},
+  {id:'cap_nengai',   grup:'Pengecap', label:'Cap Trusmi nengai',   rate:c.ng.trusmian_nengai||0},
+  {id:'batik_bir',    grup:'Pembatik', label:'Batik bironan',       rate:c.bt.bironan||0},
+  {id:'batik_ttb',    grup:'Pembatik', label:'Batik tutuban',       rate:c.bt.ttb||0},
+]; }
+window.shiftUpahDate = (d) => { const cur=$('upah-date').value||todayStr(); const dt=new Date(cur); dt.setDate(dt.getDate()+d); $('upah-date').value=dt.toLocaleDateString('sv-SE'); loadUpah(); };
+window.upahToday = () => { $('upah-date').value=todayStr(); loadUpah(); };
+async function loadUpah(){
+  const date=$('upah-date').value||todayStr();
+  const snap=await getDocs(query(collection(db,'upah_manual'), where('tanggal','==',date)));
+  const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0));
+  const el=$('upah-list');
+  const total=rows.reduce((s,r)=>s+(r.jumlah||0),0);
+  let html=`<div class="card" style="padding:16px;"><div class="muted" style="font-size:12px;">Total upah · ${fmtTgl(date)}</div><div style="font-size:22px;font-weight:800;">${rp(total)}</div><div class="muted" style="font-size:11.5px;">${rows.length} entri</div></div>`;
+  if(!rows.length){ el.innerHTML=html+'<div class="empty"><div class="ico">💵</div>Belum ada upah pada tanggal ini</div>'; return; }
+  html+=`<div class="card"><div class="table-wrap"><table><thead><tr><th>Pekerja</th><th>Jenis</th><th>Jumlah</th><th>Tarif</th><th>Upah</th><th></th></tr></thead><tbody>${
+    rows.map(r=>`<tr><td><b>${esc(r.pekerja_nama||'-')}</b></td><td>${esc(r.jenis_label||'')}${r.catatan?`<div class="muted" style="font-size:10.5px;">${esc(r.catatan)}</div>`:''}</td><td>${(+(r.qty_pcs||0).toFixed(0))} pcs</td><td>${rp(r.rate)}</td><td><b>${rp(r.jumlah)}</b></td><td><button class="btn btn-danger btn-sm" onclick="delUpah('${r.id}')">✕</button></td></tr>`).join('')
+  }</tbody></table></div></div>`;
+  el.innerHTML=html;
+}
+window.loadUpah = loadUpah;
+window.openUpahModal = () => {
+  const jl=upahJenisList();
+  const jOpts=['Pengecap','Pembatik'].map(g=>`<optgroup label="${g}">${jl.filter(j=>j.grup===g).map(j=>`<option value="${j.id}">${esc(j.label)} (${rp(j.rate)}/pcs)</option>`).join('')}</optgroup>`).join('');
+  const pekOpts='<option value="">— (opsional)</option>'+M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
+  showModal('Tambah Upah', `
+    <div class="form-group"><label class="form-label">Jenis Pekerjaan</label><select class="form-control" id="up-jenis" onchange="upJenisChange()">${jOpts}</select></div>
+    <div class="form-group"><label class="form-label">Pekerja</label><select class="form-control" id="up-pekerja">${pekOpts}</select></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Jumlah</label><div class="row-flex" style="flex-wrap:nowrap;gap:6px;"><input type="number" step="0.5" min="0" class="form-control" id="up-jml" oninput="upHitung()" style="flex:1;"><select class="form-control" id="up-unit" onchange="upHitung()" style="width:84px;"><option value="pcs">pcs</option><option value="kodi">kodi</option></select></div></div>
+      <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="up-tgl" value="${$('upah-date').value||todayStr()}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Catatan (opsional)</label><input class="form-control" id="up-cat" placeholder="mis. Tapih Lebar / sisa kemarin"></div>
+    <div class="card" style="box-shadow:none;border:1px solid var(--border);padding:12px;margin:0;"><div style="display:flex;justify-content:space-between;"><span class="muted">Upah</span><b id="up-hasil" style="font-size:16px;">Rp 0</b></div></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveUpah()">Simpan</button>`);
+  upHitung();
+};
+function upRate(){ const j=upahJenisList().find(x=>x.id===$('up-jenis').value); return j?j.rate:0; }
+window.upJenisChange = () => upHitung();
+window.upHitung = () => { const unit=$('up-unit').value; const v=num($('up-jml').value); const pcs= unit==='kodi'? v*PCS_PER_KODI : v; $('up-hasil').textContent=rp(pcs*upRate()); };
+window.saveUpah = async () => {
+  const j=upahJenisList().find(x=>x.id===$('up-jenis').value); if(!j){ toast('Pilih jenis','error'); return; }
+  const unit=$('up-unit').value, v=num($('up-jml').value); const pcs= unit==='kodi'? v*PCS_PER_KODI : v;
+  if(pcs<=0){ toast('Isi jumlah','error'); return; }
+  const pekId=$('up-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
+  const tgl=$('up-tgl').value;
+  await addDoc(collection(db,'upah_manual'), { tanggal:tgl, pekerja_id:pekId||null, pekerja_nama:pek?.nama||'(tanpa nama)', jenis_id:j.id, jenis_label:j.label, qty_pcs:pcs, rate:j.rate, jumlah:pcs*j.rate, catatan:$('up-cat').value.trim(), created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
+  toast('Upah tersimpan ✅','success'); closeHostModal();
+  if($('upah-date').value!==tgl) $('upah-date').value=tgl;
+  loadUpah();
+};
+window.delUpah = async (id) => { if(!confirm('Hapus entri upah ini?')) return; await deleteDoc(doc(db,'upah_manual',id)); toast('Dihapus'); loadUpah(); };
+
+// ===== STOK PROSES MANUAL =====
+let stokManualItems=[];
+async function loadStokManual(){
+  const snap=await getDocs(collection(db,'stok_proses_manual'));
+  stokManualItems=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nama||'').localeCompare(b.nama||''));
+  const el=$('stok-manual-list');
+  if(!stokManualItems.length){ el.innerHTML='<div class="empty"><div class="ico">📦</div>Belum ada item. Klik "+ Item Stok" untuk menambah (mis. Lakar bironan, PB, Tutuban).</div>'; return; }
+  el.innerHTML=`<div class="card"><div class="table-wrap"><table><thead><tr><th>Item</th><th>Stok</th><th></th></tr></thead><tbody>${
+    stokManualItems.map(it=>`<tr><td><b>${esc(it.nama)}</b></td><td><b style="font-size:15px;">${(+(it.jumlah||0).toFixed(1))}</b> ${esc(it.satuan||'kodi')}</td>
+      <td style="white-space:nowrap;"><button class="btn btn-outline btn-sm" onclick="adjustStokManual('${it.id}','tambah')">+ Tambah</button> <button class="btn btn-outline btn-sm" onclick="adjustStokManual('${it.id}','kurang')">− Kurang</button> <button class="btn btn-outline btn-sm" onclick="openStokManualRiwayat('${it.id}')">Riwayat</button> <button class="btn btn-danger btn-sm" onclick="delStokItem('${it.id}')">✕</button></td></tr>`).join('')
+  }</tbody></table></div></div>`;
+}
+window.loadStokManual = loadStokManual;
+window.openStokItemModal = () => {
+  showModal('Tambah Item Stok', `
+    <div class="form-group"><label class="form-label">Nama Item</label><input class="form-control" id="si-nama" placeholder="Lakar bironan / PB / Tutuban / ..."></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Satuan</label><input class="form-control" id="si-satuan" value="kodi"></div>
+      <div class="form-group"><label class="form-label">Stok Awal</label><input type="number" step="0.5" class="form-control" id="si-stok" value="0"></div>
+    </div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveStokItem()">Simpan</button>`);
+};
+window.saveStokItem = async () => {
+  const nama=$('si-nama').value.trim(); if(!nama){ toast('Isi nama','error'); return; }
+  await addDoc(collection(db,'stok_proses_manual'), { nama, satuan:$('si-satuan').value.trim()||'kodi', jumlah:num($('si-stok').value) });
+  toast('Item ditambah','success'); closeHostModal(); loadStokManual();
+};
+window.delStokItem = async (id) => { if(!confirm('Hapus item ini beserta riwayatnya?')) return;
+  const logs=await getDocs(query(collection(db,'stok_proses_log'), where('item_id','==',id)));
+  const wb=writeBatch(db); logs.docs.forEach(d=>wb.delete(d.ref)); wb.delete(doc(db,'stok_proses_manual',id));
+  await wb.commit(); toast('Dihapus'); loadStokManual();
+};
+window.adjustStokManual = (id, mode) => {
+  const it=stokManualItems.find(x=>x.id===id); if(!it) return;
+  const pekOpts='<option value="">— (opsional)</option>'+M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
+  showModal((mode==='tambah'?'+ Tambah':'− Kurang')+' Stok — '+it.nama, `
+    <p class="muted" style="font-size:12.5px;margin-bottom:10px;">Stok sekarang: <b>${(+(it.jumlah||0).toFixed(1))} ${esc(it.satuan||'kodi')}</b></p>
+    <div class="form-group"><label class="form-label">Jumlah (${esc(it.satuan||'kodi')})</label><input type="number" step="0.5" min="0" class="form-control" id="aj-jml"></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="aj-tgl" value="${todayStr()}"></div>
+      <div class="form-group"><label class="form-label">Oleh</label><select class="form-control" id="aj-pekerja">${pekOpts}</select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="aj-cat" placeholder="dari/ke mana, alasan"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveAdjustStok('${id}','${mode}')">Simpan</button>`);
+};
+window.saveAdjustStok = async (id, mode) => {
+  const it=stokManualItems.find(x=>x.id===id); if(!it) return;
+  const jml=num($('aj-jml').value); if(jml<=0){ toast('Isi jumlah','error'); return; }
+  const delta= mode==='tambah'? jml : -jml;
+  const pekId=$('aj-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
+  const wb=writeBatch(db);
+  wb.update(doc(db,'stok_proses_manual',id), { jumlah: increment(delta) });
+  wb.set(doc(collection(db,'stok_proses_log')), { item_id:id, item_nama:it.nama, delta, jenis:mode, jumlah_sebelum:(it.jumlah||0), jumlah_sesudah:(it.jumlah||0)+delta, tanggal:$('aj-tgl').value, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:$('aj-cat').value.trim(), created_ms:Date.now(), created_at:serverTimestamp() });
+  await wb.commit(); toast('Stok diperbarui ✅','success'); closeHostModal(); loadStokManual();
+};
+window.openStokManualRiwayat = async (id) => {
+  const it=stokManualItems.find(x=>x.id===id);
+  const snap=await getDocs(query(collection(db,'stok_proses_log'), where('item_id','==',id)));
+  const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0));
+  showModal('Riwayat — '+(it?.nama||''), rows.length? `<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Perubahan</th><th>Sisa</th><th>Oleh</th><th>Ket.</th></tr></thead><tbody>${
+    rows.map(r=>`<tr><td>${esc(r.tanggal||'-')}</td><td style="color:${r.delta<0?'var(--red-text)':'var(--green-text)'};font-weight:700;">${r.delta>0?'+':''}${(+r.delta.toFixed(1))}</td><td>${(+(r.jumlah_sesudah||0).toFixed(1))}</td><td>${esc(r.oleh_nama||'-')}</td><td class="muted" style="font-size:11.5px;">${esc(r.catatan||'')}</td></tr>`).join('')
+  }</tbody></table></div>` : '<div class="empty">Belum ada riwayat</div>', `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button>`);
+};
+
 // ===== SEED =====
 window.seedAll = async () => {
   if(M.golongan.length){ if(!confirm('Data golongan sudah ada. Tetap isi? (bisa menduplikasi)')) return; }
@@ -1140,7 +1331,7 @@ window.seedAll = async () => {
     const BAHAN=['Merah B mtk jpn','Garam biru mtk jpn','R mtk jpn','OL I','ASG I','ASD I','BB','ASC I','Sol hijau ny','Sol coklat ny','BS I','BO 80 D','66 29%','Kustik','Nitrit','GG','Garam item','Kaporit','Mori/Primatex','Lilin','Solda','Plastik','Minyak'];
     for(const b of BAHAN) await addDoc(collection(db,'bahan_baku'), {nama:b,satuan:'',stok_lama:0,stok_baru:0,stok_minimum:0});
     await setDoc(doc(db,'config_produksi','hpp'), {
-      harga_kain_per_yard:12100, obat_tk:110000, lainnya:130900,
+      harga_kain_per_yard:12100, hpp_wcap:70000, hpp_wbatik:40000, hpp_wobat:110000, operasional:126400, transport:18000,
       upah_ngecap_pcs:{poman:3000, lebar:2750, trusmian_minggiri:500, trusmian_nengai:3000},
       upah_batik_pcs:{bironan:1500, ttb:2000},
       biaya_obat_warna:{'Hijau Gadung':83310,'Hijau':75180,'Kuning':64360,'Coklat':73705,'Biru':50690,'Merah':64040,'Putih':56905},
