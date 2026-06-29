@@ -913,10 +913,10 @@ async function loadBahan(){
     bahan.map(b=>{ const s=obatStats(b); const sat=b.satuan?(' '+esc(b.satuan)):''; const low=s.stok_akhir<=(b.stok_minimum||0)&&(b.stok_minimum||0)>0;
       return `<tr><td><b>${esc(b.nama)}</b>${b.stok_minimum?`<div class="muted" style="font-size:11px;">min ${b.stok_minimum}</div>`:''}</td>
         <td>${s.total_ambil?('<b>'+s.total_ambil+'</b>'+sat):'<span class="muted">-</span>'}</td>
-        <td><b style="${low?'color:var(--red-text)':''}">${s.stok_akhir}${sat}</b>${low?' <span class="badge badge-red">menipis</span>':''}</td>
+        <td><b style="${low?'color:var(--red-text)':''}">${s.stok_akhir}${sat}</b>${low?' <span class="badge badge-red">menipis</span>':''}<div class="muted" style="font-size:10.5px;">Lama ${s.sisa_lama} · Baru ${s.sisa_baru}</div></td>
         <td style="white-space:nowrap;"><button class="btn btn-primary btn-sm" onclick="openAmbilModal('${b.id}')">− Ambil</button> <button class="btn btn-outline btn-sm" onclick="openRiwayatObat('${b.id}')">Riwayat</button> <button class="btn btn-outline btn-sm" onclick="openEditObat('${b.id}')">⚙</button></td></tr>`;
     }).join('')
-  }</tbody></table><div class="muted" style="font-size:12px;margin-top:10px;">Hanya tampil <b>Diambil</b> & <b>Sisa</b>. Rincian stok awal/akhir (lama & baru) ada di tombol <b>Riwayat</b>.</div>`;
+  }</tbody></table><div class="muted" style="font-size:12px;margin-top:10px;">Tampil <b>Diambil</b> & <b>Sisa</b> (lama/baru). Rincian <b>stok awal</b> ada di tombol <b>Riwayat</b>.</div>`;
 }
 window.openBahanModal = () => {
   showModal('Tambah Obat', `
@@ -1099,10 +1099,9 @@ function renderUpahRates(){
       <tr><td>Bironan</td><td style="text-align:right">${rp(c.bt.bironan)}</td></tr>
       <tr><td>Tutuban</td><td style="text-align:right">${rp(c.bt.ttb)}</td></tr>
     </tbody></table></div></div>
-    <div class="card"><div class="card-title">Tarif Pengobat (per kodi) <button class="btn btn-outline btn-sm" onclick="openUpahRateModal()">Ubah</button></div>
-    <div class="table-wrap"><table><tbody>${
-      obatJenisList().map(j=>`<tr><td>${esc(j.label)}</td><td style="text-align:right">${rp(j.rate)}</td></tr>`).join('')
-    }</tbody></table></div><div class="muted" style="font-size:12px;margin-top:8px;">Tarif ini dipakai untuk menghitung upah di menu <b>💵 Upah</b>.</div></div>`;
+    <div class="card"><div class="card-title">Upah Pengobat (borongan harian) <button class="btn btn-outline btn-sm" onclick="openUpahRateModal()">Ubah</button></div>
+    <div class="table-wrap"><table><tbody><tr><td>Per hari per pengobat</td><td style="text-align:right">${rp(obatHarian())}</td></tr></tbody></table></div>
+    <div class="muted" style="font-size:12px;margin-top:8px;">Pengobat dibayar borongan harian — kerjaannya cukup dicatat di menu <b>💵 Upah</b>. Tarif lainnya dipakai untuk hitung upah cap/batik.</div></div>`;
 }
 window.openUpahRateModal = () => { const c=_hppCfg(); const ro=(M.config&&M.config.upah_obat_kodi)||{};
   showModal('Ubah Tarif Upah (per pcs)', `
@@ -1120,25 +1119,14 @@ window.openUpahRateModal = () => { const c=_hppCfg(); const ro=(M.config&&M.conf
       <div class="form-group"><label class="form-label">Bironan</label><input type="number" class="form-control" id="ur-bir" value="${c.bt.bironan}"></div>
       <div class="form-group"><label class="form-label">Tutuban</label><input type="number" class="form-control" id="ur-ttb" value="${c.bt.ttb}"></div>
     </div>
-    <div style="font-weight:700;font-size:13px;margin:8px 0 4px;border-top:1px solid var(--border);padding-top:10px;">Pengobat (per kodi)</div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">PB</label><input type="number" class="form-control" id="ur-pb" value="${ro.pb||0}"></div>
-      <div class="form-group"><label class="form-label">PT</label><input type="number" class="form-control" id="ur-pt" value="${ro.pt||0}"></div>
-    </div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">PL</label><input type="number" class="form-control" id="ur-pl" value="${ro.pl||0}"></div>
-      <div class="form-group"><label class="form-label">BR (Bironan)</label><input type="number" class="form-control" id="ur-obr" value="${ro.br||0}"></div>
-    </div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">TTB (Tutuban)</label><input type="number" class="form-control" id="ur-ottb" value="${ro.ttb||0}"></div>
-      <div class="form-group"><label class="form-label">Lorod</label><input type="number" class="form-control" id="ur-lorod" value="${ro.lorod||0}"></div>
-    </div>
+    <div style="font-weight:700;font-size:13px;margin:8px 0 4px;border-top:1px solid var(--border);padding-top:10px;">Pengobat (borongan)</div>
+    <div class="form-group"><label class="form-label">Upah per hari per pengobat</label><input type="number" class="form-control" id="ur-oharian" value="${obatHarian()}"></div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveUpahRate()">Simpan</button>`);
 };
 window.saveUpahRate = async () => {
   const patch={ upah_ngecap_pcs:{ poman:num($('ur-poman').value), lebar:num($('ur-lebar').value), trusmian_minggiri:num($('ur-mng').value), trusmian_nengai:num($('ur-ng').value) },
     upah_batik_pcs:{ bironan:num($('ur-bir').value), ttb:num($('ur-ttb').value) },
-    upah_obat_kodi:{ pb:num($('ur-pb').value), pt:num($('ur-pt').value), pl:num($('ur-pl').value), br:num($('ur-obr').value), ttb:num($('ur-ottb').value), lorod:num($('ur-lorod').value) } };
+    upah_obat_harian:num($('ur-oharian').value) };
   await setDoc(doc(db,'config_produksi','hpp'), {...(M.config||{}), ...patch}, {merge:true}); M.config={...(M.config||{}), ...patch};
   toast('Tarif tersimpan','success'); closeHostModal(); renderMaster();
 };
@@ -1280,20 +1268,21 @@ window.saveUpah = async () => {
 };
 window.delUpah = async (id) => { if(!confirm('Hapus entri upah ini?')) return; await deleteDoc(doc(db,'upah_manual',id)); toast('Dihapus'); loadUpah(); };
 
-// ===== UPAH PENGOBAT (borongan) + auto stok proses =====
-function obatJenisList(){ const r=(M.config&&M.config.upah_obat_kodi)||{}; return [
-  {id:'pb',    label:'PB',          stok:'PB',          rate:r.pb||0},
-  {id:'pt',    label:'PT',          stok:'PT',          rate:r.pt||0},
-  {id:'pl',    label:'PL',          stok:'PL',          rate:r.pl||0},
-  {id:'br',    label:'BR (Bironan)',stok:'Bironan',     rate:r.br||0},
-  {id:'ttb',   label:'TTB (Tutuban)',stok:'Tutuban',    rate:r.ttb||0},
-  {id:'lorod', label:'Lorod',       stok:'Lakar lorod', rate:r.lorod||0},
+// ===== UPAH PENGOBAT (borongan harian flat) + auto stok proses =====
+function obatHarian(){ return (M.config&&M.config.upah_obat_harian!=null)? M.config.upah_obat_harian : 110000; }
+function obatJenisList(){ return [
+  {id:'pb',    label:'PB',           stok:'PB'},
+  {id:'pt',    label:'PT',           stok:'PT'},
+  {id:'pl',    label:'PL',           stok:'PL'},
+  {id:'br',    label:'BR (Bironan)', stok:'Bironan'},
+  {id:'ttb',   label:'TTB (Tutuban)',stok:'Tutuban'},
+  {id:'lorod', label:'Lorod',        stok:'Lakar lorod'},
 ]; }
 window.openUpahPengobatModal = () => {
   const jl=obatJenisList();
-  window._uoJOpts=jl.map(j=>`<option value="${j.id}">${esc(j.label)} (${rp(j.rate)}/kodi)</option>`).join('');
+  window._uoJOpts=jl.map(j=>`<option value="${j.id}">${esc(j.label)}</option>`).join('');
   const pekOpts='<option value="">— (opsional)</option>'+M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
-  showModal('Upah Pengobat (borongan)', `
+  showModal('Upah Pengobat (borongan harian)', `
     <div class="form-group"><label class="form-label">Pekerja</label><select class="form-control" id="uo-pekerja">${pekOpts}</select></div>
     <label class="form-label">Yang dikerjakan / direndam (kodi)</label>
     <div id="uo-rows"></div>
@@ -1303,15 +1292,14 @@ window.openUpahPengobatModal = () => {
       <div class="form-group"><label style="font-size:13px;display:block;margin-top:28px;"><input type="checkbox" id="uo-stok" checked> Masukkan ke Stok Proses</label></div>
     </div>
     <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="uo-cat"></div>
-    <div class="card" style="box-shadow:none;border:1px solid var(--border);padding:12px;margin:0;"><div style="display:flex;justify-content:space-between;"><span class="muted">Total upah</span><b id="uo-total" style="font-size:16px;">Rp 0</b></div></div>
+    <div class="card" style="box-shadow:none;border:1px solid var(--border);padding:12px;margin:0;"><div style="display:flex;justify-content:space-between;align-items:center;"><span class="muted">Upah borongan harian (pasti)</span><b id="uo-total" style="font-size:16px;">${rp(obatHarian())}</b></div></div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveUpahPengobat()">Simpan</button>`);
   uoAddRow();
 };
 window.uoAddRow = () => { const d=document.createElement('div'); d.className='row-flex uo-row'; d.style.cssText='flex-wrap:nowrap;gap:6px;margin-bottom:6px;';
-  d.innerHTML=`<select class="form-control uo-jenis" style="flex:1;" onchange="uoHitung()">${window._uoJOpts}</select><input type="number" step="0.5" min="0" class="form-control uo-qty" placeholder="kodi" oninput="uoHitung()" style="width:90px;text-align:center;"><button class="btn btn-outline btn-sm" type="button" onclick="this.closest('.uo-row').remove();uoHitung()">✕</button>`;
+  d.innerHTML=`<select class="form-control uo-jenis" style="flex:1;">${window._uoJOpts}</select><input type="number" step="0.5" min="0" class="form-control uo-qty" placeholder="kodi" style="width:90px;text-align:center;"><button class="btn btn-outline btn-sm" type="button" onclick="this.closest('.uo-row').remove()">✕</button>`;
   $('uo-rows').appendChild(d);
 };
-window.uoHitung = () => { const jl=obatJenisList(); let t=0; document.querySelectorAll('#uo-rows .uo-row').forEach(r=>{ const j=jl.find(x=>x.id===r.querySelector('.uo-jenis').value); const q=num(r.querySelector('.uo-qty').value); t+=q*(j?j.rate:0); }); $('uo-total').textContent=rp(t); };
 async function ensureStokItem(nama){
   const snap=await getDocs(collection(db,'stok_proses_manual'));
   const found=snap.docs.find(d=>(d.data().nama||'').toLowerCase()===nama.toLowerCase());
@@ -1325,8 +1313,8 @@ window.saveUpahPengobat = async () => {
   if(!rows.length){ toast('Isi minimal 1 baris','error'); return; }
   const pekId=$('uo-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
   const tgl=$('uo-tgl').value, toStok=$('uo-stok').checked, cat=$('uo-cat').value.trim();
-  const detail=rows.map(r=>{ const j=jl.find(x=>x.id===r.jid); return {jenis_id:j.id, label:j.label, stok:j.stok, qty:r.qty, rate:j.rate, sub:r.qty*j.rate}; });
-  const total=detail.reduce((s,d)=>s+d.sub,0), totalKodi=detail.reduce((s,d)=>s+d.qty,0);
+  const detail=rows.map(r=>{ const j=jl.find(x=>x.id===r.jid); return {jenis_id:j.id, label:j.label, stok:j.stok, qty:r.qty}; });
+  const total=obatHarian(), totalKodi=detail.reduce((s,d)=>s+d.qty,0); // upah = borongan harian flat
   try {
     await addDoc(collection(db,'upah_manual'), { tanggal:tgl, grup:'Pengobat', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'(tanpa nama)', jenis_label:'Pengobat', detail, qty_pcs:totalKodi*PCS_PER_KODI, jumlah:total, catatan:cat, masuk_stok:toStok, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
     if(toStok){
@@ -1441,7 +1429,7 @@ window.seedAll = async () => {
       harga_kain_per_yard:12100, hpp_wcap:70000, hpp_wbatik:40000, hpp_wobat:110000, operasional:126400, transport:18000,
       upah_ngecap_pcs:{poman:3000, lebar:2750, trusmian_minggiri:500, trusmian_nengai:3000},
       upah_batik_pcs:{bironan:1500, ttb:2000},
-      upah_obat_kodi:{pb:0, pt:0, pl:0, br:0, ttb:0, lorod:0},
+      upah_obat_harian:110000,
       biaya_obat_warna:{'Hijau Gadung':83310,'Hijau':75180,'Kuning':64360,'Coklat':73705,'Biru':50690,'Merah':64040,'Putih':56905},
       ambang_pool:5
     });
