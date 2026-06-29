@@ -909,16 +909,14 @@ async function loadBahan(){
   const el=$('bahan-list');
   if(!M.bahan.length){ el.innerHTML='<div class="empty"><div class="ico">🧪</div>Belum ada obat. Klik "+ Obat" atau isi data awal.</div>'; return; }
   const bahan=[...M.bahan].sort((a,b)=>a.nama.localeCompare(b.nama));
-  el.innerHTML=`<table><thead><tr><th>Obat</th><th>Stok Awal</th><th>Total</th><th>Diambil</th><th>Sisa (Lama/Baru)</th><th>Stok Akhir</th><th></th></tr></thead><tbody>${
+  el.innerHTML=`<table><thead><tr><th>Obat</th><th>Diambil</th><th>Sisa</th><th></th></tr></thead><tbody>${
     bahan.map(b=>{ const s=obatStats(b); const sat=b.satuan?(' '+esc(b.satuan)):''; const low=s.stok_akhir<=(b.stok_minimum||0)&&(b.stok_minimum||0)>0;
       return `<tr><td><b>${esc(b.nama)}</b>${b.stok_minimum?`<div class="muted" style="font-size:11px;">min ${b.stok_minimum}</div>`:''}</td>
-        <td><span class="badge badge-gray">Lama ${b.stok_lama||0}</span> <span class="badge badge-blue">Baru ${b.stok_baru||0}</span></td>
-        <td>${s.total_awal}${sat}</td><td>${s.total_ambil?('<b>'+s.total_ambil+'</b>'+sat):'<span class="muted">-</span>'}</td>
-        <td><span class="badge ${s.sisa_lama?'badge-amber':'badge-gray'}">Lama ${s.sisa_lama}</span> <span class="badge badge-blue">Baru ${s.sisa_baru}</span></td>
+        <td>${s.total_ambil?('<b>'+s.total_ambil+'</b>'+sat):'<span class="muted">-</span>'}</td>
         <td><b style="${low?'color:var(--red-text)':''}">${s.stok_akhir}${sat}</b>${low?' <span class="badge badge-red">menipis</span>':''}</td>
         <td style="white-space:nowrap;"><button class="btn btn-primary btn-sm" onclick="openAmbilModal('${b.id}')">− Ambil</button> <button class="btn btn-outline btn-sm" onclick="openRiwayatObat('${b.id}')">Riwayat</button> <button class="btn btn-outline btn-sm" onclick="openEditObat('${b.id}')">⚙</button></td></tr>`;
     }).join('')
-  }</tbody></table><div class="muted" style="font-size:12px;margin-top:10px;">Pengambilan mengurangi <b>stok lama</b> dulu, lalu <b>stok baru</b>. Kiriman baru: ⚙ → "Stok Baru Masuk".</div>`;
+  }</tbody></table><div class="muted" style="font-size:12px;margin-top:10px;">Hanya tampil <b>Diambil</b> & <b>Sisa</b>. Rincian stok awal/akhir (lama & baru) ada di tombol <b>Riwayat</b>.</div>`;
 }
 window.openBahanModal = () => {
   showModal('Tambah Obat', `
@@ -972,8 +970,15 @@ window.saveAmbil = async () => { const id=$('am-bahan').value, jml=num($('am-jml
   toast(jml+' '+(b?.nama||'obat')+' diambil ✅','success'); closeHostModal(); loadBahan();
 };
 window.openRiwayatObat = (id) => { const b=M.bahan.find(x=>x.id===id); if(!b) return;
-  const ps=M.pengambilan.filter(p=>p.bahan_id===id).sort((a,b)=>(b.tanggal||'').localeCompare(a.tanggal||'')); const s=obatStats(b);
-  showModal('Riwayat — '+b.nama, `<div class="muted" style="font-size:12.5px;margin-bottom:10px;">Total awal <b>${s.total_awal}</b> · Diambil <b>${s.total_ambil}</b> · Sisa <b>${s.stok_akhir}</b></div>
+  const ps=M.pengambilan.filter(p=>p.bahan_id===id).sort((a,b)=>(b.tanggal||'').localeCompare(a.tanggal||'')); const s=obatStats(b); const sat=b.satuan?(' '+esc(b.satuan)):'';
+  showModal('Riwayat — '+b.nama, `
+    <div class="card" style="box-shadow:none;border:1px solid var(--border);padding:12px;margin:0 0 12px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;"><span>Stok Awal</span><b>${s.total_awal}${sat}</b></div>
+      <div class="muted" style="font-size:11.5px;">Lama ${b.stok_lama||0} · Baru ${b.stok_baru||0}</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:6px;"><span>Diambil</span><b>${s.total_ambil}${sat}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;border-top:1px solid var(--border);margin-top:6px;padding-top:6px;font-weight:800;"><span>Stok Akhir</span><span>${s.stok_akhir}${sat}</span></div>
+      <div class="muted" style="font-size:11.5px;">Sisa Lama ${s.sisa_lama} · Sisa Baru ${s.sisa_baru}</div>
+    </div>
     ${ps.length?`<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Jumlah</th><th>Catatan</th><th></th></tr></thead><tbody>${ps.map(p=>`<tr><td>${esc(p.tanggal||'-')}</td><td><b>${p.jumlah}</b></td><td>${esc(p.catatan||'')}</td><td><button class="btn btn-danger btn-sm" onclick="delAmbil('${p.id}','${id}')">✕</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Belum ada pengambilan</div>'}
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button><button class="btn btn-primary" onclick="openAmbilModal('${id}')">+ Ambil</button>`);
 };
@@ -1212,11 +1217,24 @@ window.shiftUpahDate = (d) => { const cur=$('upah-date').value||todayStr(); cons
 window.upahToday = () => { $('upah-date').value=todayStr(); loadUpah(); };
 async function loadUpah(){
   const date=$('upah-date').value||todayStr();
-  const snap=await getDocs(query(collection(db,'upah_manual'), where('tanggal','==',date)));
+  const month=date.slice(0,7);
+  const [snap, mSnap]=await Promise.all([
+    getDocs(query(collection(db,'upah_manual'), where('tanggal','==',date))),
+    getDocs(query(collection(db,'upah_manual'), where('tanggal','>=',month+'-01'), where('tanggal','<=',month+'-31')))
+  ]);
   const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0));
   const el=$('upah-list');
   const total=rows.reduce((s,r)=>s+(r.jumlah||0),0);
-  let html=`<div class="card" style="padding:16px;"><div class="muted" style="font-size:12px;">Total upah · ${fmtTgl(date)}</div><div style="font-size:22px;font-weight:800;">${rp(total)}</div><div class="muted" style="font-size:11.5px;">${rows.length} entri</div></div>`;
+  const monthTotal=mSnap.docs.reduce((s,d)=>s+(d.data().jumlah||0),0);
+  // breakdown grup hari ini (uang keluar)
+  const grp={Pengecap:0,Pembatik:0,Pengobat:0};
+  rows.forEach(r=>{ const g = (Array.isArray(r.detail)&&r.detail.length)?'Pengobat' : (String(r.jenis_id||'').startsWith('cap')?'Pengecap':'Pembatik'); grp[g]+=(r.jumlah||0); });
+  const mName=new Date(month+'-01').toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  let html=`<div class="card" style="padding:16px;"><div class="row-flex" style="justify-content:space-between;align-items:flex-start;">
+    <div><div class="muted" style="font-size:12px;">💸 Keluar (upah) · ${fmtTgl(date)}</div><div style="font-size:24px;font-weight:800;color:var(--red-text);">${rp(total)}</div>
+      <div class="muted" style="font-size:11.5px;">Pengecap ${rp(grp.Pengecap)} · Pembatik ${rp(grp.Pembatik)} · Pengobat ${rp(grp.Pengobat)}</div></div>
+    <div style="text-align:right;"><div class="muted" style="font-size:11.5px;">Total ${esc(mName)}</div><div style="font-size:16px;font-weight:800;">${rp(monthTotal)}</div></div>
+  </div></div>`;
   if(!rows.length){ el.innerHTML=html+'<div class="empty"><div class="ico">💵</div>Belum ada upah pada tanggal ini</div>'; return; }
   html+=`<div class="card"><div class="table-wrap"><table><thead><tr><th>Pekerja</th><th>Jenis</th><th>Jumlah</th><th>Tarif</th><th>Upah</th><th></th></tr></thead><tbody>${
     rows.map(r=>{
