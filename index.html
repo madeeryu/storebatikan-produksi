@@ -30,7 +30,8 @@
     .login-logo .tagline { font-size:12px; color:var(--text-muted); margin-top:4px; }
     .login-title { font-size:20px; font-weight:700; }
     .login-sub { font-size:13px; color:var(--text-secondary); margin-bottom:18px; }
-    #app { display:flex; min-height:100vh; overflow-x:hidden; }
+    #app { display:none; min-height:100vh; overflow-x:hidden; }
+    #app.app-show { display:flex; }
     #sidebar { width:var(--sidebar-w); min-height:100vh; background:var(--white); border-right:1px solid var(--border); position:fixed; top:0; left:0; display:flex; flex-direction:column; z-index:100; }
     @media (max-width:768px){
       #sidebar { left:calc(-1 * var(--sidebar-w)) !important; transition:left .28s cubic-bezier(.4,0,.2,1); z-index:300; }
@@ -38,7 +39,7 @@
       #sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:299; }
       #sidebar-overlay.open { display:block; }
       #main-content { margin-left:0 !important; width:100% !important; }
-      #app { display:block !important; }
+      #app.app-show { display:block !important; }
       #topbar-mobile { display:flex !important; }
     }
     .sidebar-logo { padding:20px 20px 16px; border-bottom:1px solid var(--border); }
@@ -133,7 +134,7 @@
   </div>
 </div>
 
-<div id="app" style="display:none;">
+<div id="app">
   <div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
   <aside id="sidebar">
     <div class="sidebar-logo"><div class="brand">🎨 Batik AN</div><div class="sub">Monitoring Produksi</div></div>
@@ -388,9 +389,9 @@ onAuthStateChanged(auth, async (user) => {
     await showApp();
   } else { currentUser=null; currentUserData=null; showLogin(); }
 });
-function showLogin(){ $('login-page').style.display='flex'; $('app').style.display='none'; $('btn-login').disabled=false; $('btn-login').textContent='Masuk'; }
+function showLogin(){ $('login-page').style.display='flex'; $('app').classList.remove('app-show'); $('btn-login').disabled=false; $('btn-login').textContent='Masuk'; }
 async function showApp(){
-  $('login-page').style.display='none'; $('app').style.display='flex';
+  $('login-page').style.display='none'; $('app').classList.add('app-show');
   const nm=currentUserData?.nama||'User', role=currentUserData?.role||'karyawan';
   $('sidebar-username').textContent=nm; $('sidebar-role').textContent= role==='owner'?'👑 Owner':'👤 Karyawan';
   $('sidebar-avatar').textContent=(nm[0]||'U').toUpperCase();
