@@ -1610,7 +1610,91 @@ window.openMoriRiwayat = async () => {
   const totalYd=rows.reduce((s,r)=>s+(r.yard_terpakai||0),0);
   showModal('Riwayat Pemotongan', (rows.length? `<div class="muted" style="font-size:12px;margin-bottom:8px;">${rows.length} catatan · total ${(+totalYd.toFixed(1))} yd — dipakai untuk hitung laju & estimasi habis.</div><div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Gulung</th><th>Hasil</th><th>Yard</th><th></th></tr></thead><tbody>${
     rows.map(r=>`<tr><td>${esc(r.tanggal||'-')}</td><td>${esc(r.roll_label||'-')}${r.habiskan?' <span class="badge badge-gray" style="font-size:9px;">habis</span>':''}${r.manual?' <span class="badge badge-amber" style="font-size:9px;">manual</span>':''}</td><td style="font-size:12px;">${(r.hasil||[]).map(h=>esc(h.ukuran)+' '+pakStr(h.pcs)).join(' · ')||'-'}${r.oleh_nama?`<div class="muted" style="font-size:10px;">${esc(r.oleh_nama)}</div>`:''}</td><td>${(+((r.yard_terpakai||0)).toFixed(1))}</td><td><button class="btn btn-danger btn-sm" onclick="delMoriPotong('${r.id}')">✕</button></td></tr>`).join('')
-  }</tbody></table></div>` : '<div class="empty">Belum ada pemotongan</div>'), `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button><button class="btn btn-primary" onclick="openMoriHistoriModal()">+ Histori Manual</button>`);
+  }</tbody></table></div>` : '<div class="empty">Belum ada pemotongan</div>'), `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button><button class="btn btn-outline" onclick="openMoriHistoriBulk()">📥 Import Massal</button><button class="btn btn-primary" onclick="openMoriHistoriModal()">+ Histori Manual</button>`);
+};
+
+// ===== IMPORT HISTORI MASSAL (dari buku catatan) =====
+function hbParse(text){
+  const out=[], bad=[];
+  String(text||'').split(/\n/).forEach((raw,idx)=>{
+    const line=raw.trim(); if(!line || line.startsWith('#')) return;
+    const parts=line.split('=');
+    const yard=parseFloat(String(parts[0]).replace(',','.').replace(/[^0-9.]/g,''));
+    if(!yard || isNaN(yard) || yard<=0){ bad.push(`baris ${idx+1}: "${line}"`); return; }
+    const map={};
+    if(parts[1]) parts[1].split('+').forEach(tok=>{
+      const m=String(tok).trim().match(/^(\d+(?:[.,]\d+)?)\s*([A-Za-z]+)/);
+      if(!m) return;
+      const n=parseFloat(m[1].replace(',','.')); const u=m[2].toLowerCase();
+      let nama=null;
+      if(u.startsWith('tp')||u.startsWith('tap')) nama='Tapih';
+      else if(u.startsWith('sld')||u.startsWith('sl')||u.startsWith('sel')) nama='Slendang';
+      else if(u.startsWith('sr')||u.startsWith('sar')) nama='Sarung';
+      if(nama) map[nama]=(map[nama]||0)+n;
+    });
+    out.push({ yard, hasil:Object.keys(map).map(k=>({ukuran:k,pcs:map[k]})), label:'G'+(out.length+1)+' (buku)' });
+  });
+  return {items:out, bad};
+}
+function hbAssign(items, startStr, th, maxPerDay){
+  const p=String(startStr).split('-').map(Number);
+  let d=new Date(p[0], p[1]-1, p[2]);
+  const fmt=x=>x.toLocaleDateString('sv-SE');
+  let cur=[];
+  items.forEach(it=>{
+    const small=it.yard<th;
+    const canShare = cur.length>0 && cur.length<maxPerDay && (small || cur.some(x=>x.yard<th));
+    if(cur.length>0 && !canShare){ d=new Date(d.getFullYear(), d.getMonth(), d.getDate()+1); cur=[]; }
+    it.tanggal=fmt(d); cur.push(it);
+  });
+  return items;
+}
+window.openMoriHistoriBulk = () => {
+  const prefill=['164','168','134','159','178','154','175','206','105','170','87','50','148','110','192','207.25','180','196','183','176'].join('\n');
+  showModal('Import Histori Massal', `
+    <p class="muted" style="font-size:12.5px;margin-bottom:10px;">Satu gulung per baris. Format: <b>yard</b> saja, atau <b>yard = 67Tp + 2Sld</b> (Tp/Sr/Sld). Tanggal diisi otomatis; boleh <b>2 potong/hari</b> bila ada gulung di bawah ambang. Catatan ini <b>tidak mengubah stok</b>, hanya menambah data estimasi.</p>
+    <div class="form-group"><label class="form-label">Daftar gulung</label><textarea class="form-control" id="hb-list" rows="8" style="font-family:monospace;">${prefill}</textarea></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Mulai</label><input type="date" class="form-control" id="hb-start" value="2026-06-25"></div>
+      <div class="form-group"><label class="form-label">Sampai</label><input type="date" class="form-control" id="hb-end" value="2026-07-09"></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Ambang yard</label><input type="number" class="form-control" id="hb-th" value="150"></div>
+      <div class="form-group"><label class="form-label">Maks potong/hari</label><input type="number" class="form-control" id="hb-max" value="2"></div>
+    </div>
+    <button class="btn btn-outline btn-sm" type="button" onclick="hbPreview()">🔍 Pratinjau</button>
+    <div id="hb-preview" style="margin-top:10px;"></div>
+  `, `<button class="btn btn-outline" onclick="openMoriRiwayat()">Kembali</button><button class="btn btn-primary" id="hb-save" onclick="saveMoriHistoriBulk()" disabled>Simpan Semua</button>`);
+};
+window.hbPreview = () => {
+  const {items,bad}=hbParse($('hb-list').value);
+  if(!items.length){ $('hb-preview').innerHTML='<div class="muted" style="font-size:12.5px;">Tidak ada baris valid.</div>'; $('hb-save').disabled=true; return; }
+  hbAssign(items, $('hb-start').value, num($('hb-th').value)||150, Math.max(1,num($('hb-max').value)||2));
+  window._hbItems=items;
+  const lastTgl=items[items.length-1].tanggal, endTgl=$('hb-end').value;
+  const totalYd=items.reduce((s,i)=>s+i.yard,0);
+  const perDay={}; items.forEach(i=>perDay[i.tanggal]=(perDay[i.tanggal]||0)+1);
+  const over = lastTgl>endTgl;
+  $('hb-preview').innerHTML=`
+    ${bad.length?`<div class="error-msg" style="display:block;">Baris tak terbaca: ${esc(bad.join('; '))}</div>`:''}
+    <div class="muted" style="font-size:12px;margin-bottom:6px;">${items.length} gulung · total <b>${(+totalYd.toFixed(2))} yd</b> · ${Object.keys(perDay).length} hari (${esc(items[0].tanggal)} → ${esc(lastTgl)})</div>
+    ${over?`<div class="error-msg" style="display:block;">Melebihi tanggal akhir (${esc(endTgl)}). Naikkan "maks potong/hari" atau ambang yard.</div>`:''}
+    <div class="table-wrap" style="max-height:220px;overflow-y:auto;"><table><thead><tr><th>Tanggal</th><th>Yard</th><th>Hasil</th></tr></thead><tbody>${
+      items.map(i=>`<tr><td>${esc(i.tanggal)}${perDay[i.tanggal]>1?' <span class="badge badge-gray" style="font-size:9px;">2x</span>':''}</td><td><b>${i.yard}</b></td><td style="font-size:12px;">${i.hasil.map(h=>esc(h.ukuran)+' '+h.pcs).join(' · ')||'<span class="muted">—</span>'}</td></tr>`).join('')
+    }</tbody></table></div>`;
+  $('hb-save').disabled=false;
+};
+window.saveMoriHistoriBulk = async () => {
+  const items=window._hbItems||[];
+  if(!items.length){ toast('Pratinjau dulu','error'); return; }
+  if(!confirm(`Simpan ${items.length} catatan histori? Stok gulung tidak diubah.`)) return;
+  $('hb-save').disabled=true;
+  try {
+    for(const it of items){
+      await addDoc(collection(db,'mori_potong'), { tanggal:it.tanggal, roll_id:null, roll_label:it.label, hasil:it.hasil, yard_terpakai:it.yard, manual:true, catatan:'Import histori buku', created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
+    }
+    toast(items.length+' histori tersimpan ✅','success'); openMoriRiwayat(); loadMori();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('hb-save').disabled=false; }
 };
 // Input histori pemotongan lama (dari buku catatan) — hanya untuk estimasi, tidak mengubah stok gulung
 window.openMoriHistoriModal = () => {
