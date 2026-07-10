@@ -1420,6 +1420,17 @@ function moriUkuran(){ return (M.moriConf&&Array.isArray(M.moriConf.ukuran)&&M.m
 const ukYard = u => (u.cm||0)/CM_PER_YARD;
 const yd = n => (Math.round((n||0)*100)/100).toLocaleString('id-ID')+' yd';
 const pakStr = pcs => { const p=Math.floor(pcs/10), r=pcs%10; return p>0? `${p} pak${r?` + ${(+r.toFixed(1))}`:''}` : `${(+pcs.toFixed(1))}`; };
+// Prediksi greedy: utamakan Tapih sebanyak mungkin, sisa yard jadi Slendang/Sarung
+function predictGreedy(yard){
+  const uks=moriUkuran();
+  const primary = uks.find(u=>/tapih/i.test(u.nama)) || uks[0];
+  const result={}; uks.forEach(u=>result[u.nama]=0);
+  let rem=yard||0;
+  if(primary && ukYard(primary)>0){ const c=Math.floor(rem/ukYard(primary)); result[primary.nama]=c; rem-=c*ukYard(primary); }
+  const others=uks.filter(u=>u!==primary && ukYard(u)>0).sort((a,b)=>ukYard(b)-ukYard(a));
+  for(const u of others){ const c=Math.floor(rem/ukYard(u)); result[u.nama]=(result[u.nama]||0)+c; rem-=c*ukYard(u); }
+  return {result, sisa:Math.max(0,rem)};
+}
 let moriRolls=[];
 async function loadMori(){
   const [rollSnap, potSnap]=await Promise.all([ getDocs(collection(db,'mori_roll')), getDocs(collection(db,'mori_potong')) ]);
@@ -1445,9 +1456,9 @@ async function loadMori(){
   $('mori-rolls').innerHTML = ada.length? `<table><thead><tr><th>Gulung</th><th>Sisa</th>${uks.map(u=>`<th title="${esc(u.nama)} ${u.cm}cm">~${esc(u.nama)}</th>`).join('')}<th></th></tr></thead><tbody>${
     ada.map(r=>`<tr><td><b>${esc(r.label||('G'+(r.no||'')))}</b>${r.tanggal_masuk?`<div class="muted" style="font-size:10.5px;">${esc(r.tanggal_masuk)}</div>`:''}</td>
       <td><b>${(+((r.yard_sisa||0)).toFixed(1))}</b> yd${(r.yard_sisa||0)<(r.yard_awal||0)-0.01?`<div class="muted" style="font-size:10.5px;">awal ${(+((r.yard_awal||0)).toFixed(1))}</div>`:''}</td>
-      ${uks.map(u=>`<td class="muted">${Math.floor((r.yard_sisa||0)/ukYard(u))}</td>`).join('')}
+      ${(()=>{ const pg=predictGreedy(r.yard_sisa||0); return uks.map(u=>`<td class="muted">${pg.result[u.nama]||0}</td>`).join(''); })()}
       <td style="white-space:nowrap;"><button class="btn btn-primary btn-sm" onclick="openMoriPotongModal('${r.id}')">✂️ Potong</button> <button class="btn btn-danger btn-sm" onclick="delMoriRoll('${r.id}')">✕</button></td></tr>`).join('')
-  }</tbody></table><div class="muted" style="font-size:12px;margin-top:8px;">Kolom "~Ukuran" = perkiraan maks pcs bila gulung itu dipotong semua jadi ukuran tsb.</div>` : '<div class="empty"><div class="ico">🧵</div>Belum ada mori. Klik "+ Gulung Mori".</div>';
+  }</tbody></table><div class="muted" style="font-size:12px;margin-top:8px;">Kolom ukuran = <b>prediksi utamakan Tapih</b> dulu (paling banyak), sisa yard baru jadi Slendang/Sarung.</div>` : '<div class="empty"><div class="ico">🧵</div>Belum ada mori. Klik "+ Gulung Mori".</div>';
 }
 window.loadMori = loadMori;
 window.openMoriAddModal = () => {
@@ -1495,10 +1506,16 @@ window.openMoriPotongModal = (preRollId) => {
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="mp-save" onclick="saveMoriPotong()">Simpan</button>`);
   mpHitung();
 };
+window.mpPakaiPrediksi = () => {
+  const r=moriRolls.find(x=>x.id===$('mp-roll').value); if(!r) return;
+  const pg=predictGreedy(r.yard_sisa||0);
+  document.querySelectorAll('.mp-pcs').forEach(i=>{ i.value = pg.result[i.dataset.nama]||0; });
+  mpHitung();
+};
 window.mpHitung = () => {
   const r=moriRolls.find(x=>x.id===$('mp-roll').value); const sisaAwal=r?(r.yard_sisa||0):0;
-  const uks=moriUkuran();
-  $('mp-pred').innerHTML='Prediksi maks dari '+(+sisaAwal.toFixed(1))+' yd: '+uks.map(u=>`<b>${Math.floor(sisaAwal/ukYard(u))}</b> ${esc(u.nama)}`).join(' · ');
+  const uks=moriUkuran(); const pg=predictGreedy(sisaAwal);
+  $('mp-pred').innerHTML='Prediksi (utamakan Tapih) dari '+(+sisaAwal.toFixed(1))+' yd: '+uks.map(u=>`<b>${pg.result[u.nama]||0}</b> ${esc(u.nama)}`).join(' · ')+` · sisa ${(+pg.sisa.toFixed(2))} yd <a href="javascript:void(0)" onclick="mpPakaiPrediksi()" style="color:var(--primary);font-weight:600;">Pakai prediksi</a>`;
   let pakai=0; document.querySelectorAll('.mp-pcs').forEach(i=>{ pakai += (num(i.value))*parseFloat(i.dataset.yd); });
   const habis=$('mp-habis').checked;
   $('mp-pakai').textContent=(+pakai.toFixed(2))+' yd';
