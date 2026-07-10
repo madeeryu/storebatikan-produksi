@@ -1417,7 +1417,7 @@ window.openStokManualRiwayat = async (id) => {
 
 // ===== STOK MORI (yard) + potong + estimasi habis =====
 const CM_PER_YARD = 91.44;
-function moriUkuran(){ return (M.moriConf&&Array.isArray(M.moriConf.ukuran)&&M.moriConf.ukuran.length)? M.moriConf.ukuran : [{nama:'Tapih',cm:210},{nama:'Sarung',cm:195},{nama:'Slendang',cm:255}]; }
+function moriUkuran(){ return (M.moriConf&&Array.isArray(M.moriConf.ukuran)&&M.moriConf.ukuran.length)? M.moriConf.ukuran : [{nama:'Tapih',cm:218},{nama:'Sarung',cm:195},{nama:'Slendang',cm:255}]; }
 const ukYard = u => (u.cm||0)/CM_PER_YARD;
 const yd = n => (Math.round((n||0)*100)/100).toLocaleString('id-ID')+' yd';
 const pakStr = pcs => { const p=Math.floor(pcs/10), r=pcs%10; return p>0? `${p} pak${r?` + ${(+r.toFixed(1))}`:''}` : `${(+pcs.toFixed(1))}`; };
@@ -1434,10 +1434,13 @@ function _bestFill(freed, sizes){
   })(0, freed);
   return best;
 }
-// Prediksi: utamakan Tapih sebanyak mungkin, TAPI minimalkan sisa terbuang.
+// Prediksi: Tapih SEBANYAK MUNGKIN, asalkan sisa <= toleransi (default 8 cm).
 // Kurangi tapih 0..K potong ("cek 10 potong di belakang"), isi sisanya dgn kombinasi terbaik.
-function predictGreedy(yard, K){
-  K = K==null? 10 : K;
+// Kalau tak ada yg memenuhi toleransi, pakai yg sisanya paling kecil.
+function predictGreedy(yard, K, tolCm){
+  const mc=M.moriConf||{};
+  K = K==null? (mc.max_kurang_tapih||10) : K;
+  tolCm = tolCm==null? (mc.toleransi_cm!=null? mc.toleransi_cm : 8) : tolCm;
   const uks=moriUkuran();
   const primary = uks.find(u=>/tapih/i.test(u.nama)) || uks[0];
   const pY = primary? ukYard(primary):0;
@@ -1446,12 +1449,14 @@ function predictGreedy(yard, K){
   const result={}; uks.forEach(u=>result[u.nama]=0);
   if(!pY){ return {result, sisa:yard||0}; }
   const tMax=Math.floor((yard||0)/pY+1e-9);
-  let best=null;
+  let bestTol=null, bestMin=null;
   for(let t=tMax; t>=Math.max(0,tMax-K); t--){
     const freed=(yard||0)-t*pY;
     const bf=_bestFill(freed, otherY);
-    if(!best || bf.leftover < best.leftover-1e-9 || (Math.abs(bf.leftover-best.leftover)<1e-9 && t>best.t)) best={t, counts:bf.counts, leftover:bf.leftover};
+    if(!bestMin || bf.leftover < bestMin.leftover-1e-9) bestMin={t, counts:bf.counts, leftover:bf.leftover};
+    if(!bestTol && bf.leftover*CM_PER_YARD <= tolCm+1e-6) bestTol={t, counts:bf.counts, leftover:bf.leftover}; // t menurun -> hit pertama = tapih terbanyak
   }
+  const best = bestTol || bestMin;
   result[primary.nama]=best.t;
   others.forEach((u,i)=>result[u.nama]=best.counts[i]);
   return {result, sisa:Math.max(0,best.leftover)};
@@ -1742,11 +1747,13 @@ function renderMoriMaster(){
     <div class="table-wrap"><table><thead><tr><th>Nama</th><th>cm</th><th>yard/pcs</th></tr></thead><tbody>${
       uks.map(u=>`<tr><td>${esc(u.nama)}</td><td>${u.cm}</td><td>${(+ukYard(u).toFixed(3))}</td></tr>`).join('')
     }</tbody></table></div><div class="muted" style="font-size:12px;margin-top:8px;">1 yard = 91,44 cm.</div></div>
-    <div class="card"><div class="card-title">Estimasi Habis <button class="btn btn-outline btn-sm" onclick="openMoriEstModal()">Ubah</button></div>
+    <div class="card"><div class="card-title">Estimasi & Prediksi <button class="btn btn-outline btn-sm" onclick="openMoriEstModal()">Ubah</button></div>
     <div class="table-wrap"><table><tbody>
       <tr><td>Target potong manual</td><td style="text-align:right">${mc.target_yard_hari? (mc.target_yard_hari+' yd/hari') : '<span class="muted">— (pakai rata²)</span>'}</td></tr>
       <tr><td>Jendela rata-rata</td><td style="text-align:right">${(mc.window_hari||14)} hari</td></tr>
-    </tbody></table></div></div>`;
+      <tr><td>Toleransi sisa potong</td><td style="text-align:right">${(mc.toleransi_cm!=null?mc.toleransi_cm:8)} cm</td></tr>
+      <tr><td>Maks kurangi Tapih</td><td style="text-align:right">${(mc.max_kurang_tapih||10)} potong</td></tr>
+    </tbody></table></div><div class="muted" style="font-size:12px;margin-top:8px;">Prediksi memilih <b>Tapih terbanyak</b> yang sisanya masih ≤ toleransi.</div></div>`;
 }
 window.openMoriUkuranModal = () => {
   const uks=moriUkuran();
@@ -1761,13 +1768,20 @@ window.saveMoriUkuran = async () => {
   toast('Tersimpan','success'); closeHostModal(); renderMaster();
 };
 window.openMoriEstModal = () => { const mc=M.moriConf||{};
-  showModal('Ubah Estimasi Habis', `
+  showModal('Ubah Estimasi & Prediksi', `
     <div class="form-group"><label class="form-label">Target potong manual (yd/hari)</label><input type="number" class="form-control" id="me-target" value="${mc.target_yard_hari||''}" placeholder="kosong = pakai rata-rata histori"></div>
     <div class="form-group"><label class="form-label">Jendela rata-rata (hari)</label><input type="number" class="form-control" id="me-win" value="${mc.window_hari||14}"></div>
+    <div style="font-weight:700;font-size:13px;margin:8px 0 4px;border-top:1px solid var(--border);padding-top:10px;">Aturan Prediksi Potong</div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Toleransi sisa (cm)</label><input type="number" class="form-control" id="me-tol" value="${mc.toleransi_cm!=null?mc.toleransi_cm:8}"></div>
+      <div class="form-group"><label class="form-label">Maks kurangi Tapih</label><input type="number" class="form-control" id="me-k" value="${mc.max_kurang_tapih||10}"></div>
+    </div>
+    <div class="muted" style="font-size:12px;">Ambil <b>Tapih terbanyak</b> yang sisanya ≤ toleransi. Toleransi lebih kecil = lebih hemat kain tapi Tapih bisa berkurang.</div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveMoriEst()">Simpan</button>`);
 };
 window.saveMoriEst = async () => {
-  const patch={ target_yard_hari:num($('me-target').value)||null, window_hari:num($('me-win').value)||14 };
+  const patch={ target_yard_hari:num($('me-target').value)||null, window_hari:num($('me-win').value)||14,
+    toleransi_cm:num($('me-tol').value)||8, max_kurang_tapih:num($('me-k').value)||10 };
   await setDoc(doc(db,'config_produksi','mori'), {...(M.moriConf||{}), ...patch}, {merge:true}); M.moriConf={...(M.moriConf||{}), ...patch};
   toast('Tersimpan','success'); closeHostModal(); renderMaster();
 };
