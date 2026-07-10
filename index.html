@@ -141,6 +141,7 @@
       <div class="nav-section">Utama</div>
       <a class="nav-item active" data-page="upah" onclick="navigateTo('upah')">💵 Upah</a>
       <a class="nav-item" data-page="stok-manual" onclick="navigateTo('stok-manual')">📦 Stok Proses</a>
+      <a class="nav-item" data-page="mori" onclick="navigateTo('mori')">🧵 Stok Mori</a>
       <a class="nav-item" data-page="bahan" onclick="navigateTo('bahan')">🧪 Stok Obat <span class="badge badge-red hidden" id="bahan-badge" style="margin-left:auto;">0</span></a>
       <div class="nav-section">Pengaturan</div>
       <a class="nav-item" data-page="master" onclick="navigateTo('master')">⚙️ Master Data</a>
@@ -181,6 +182,18 @@
         <button class="btn btn-primary" onclick="openStokItemModal()">+ Item Stok</button>
       </div>
       <div id="stok-manual-list"><div class="empty">Memuat…</div></div>
+    </div>
+
+    <!-- ===== STOK MORI ===== -->
+    <div class="page" id="page-mori">
+      <div class="page-header"><div class="page-title">🧵 Stok Mori</div><div class="page-subtitle">Monitoring mori (yard), estimasi habis & pencatatan pemotongan</div></div>
+      <div class="row-flex" style="margin-bottom:14px;">
+        <button class="btn btn-primary" onclick="openMoriPotongModal()">✂️ Catat Pemotongan</button>
+        <button class="btn btn-outline" onclick="openMoriAddModal()">+ Gulung Mori</button>
+        <button class="btn btn-outline" onclick="openMoriRiwayat()">📜 Riwayat Potong</button>
+      </div>
+      <div id="mori-summary"></div>
+      <div class="card"><div class="card-title">Gulungan Mori (sisa)</div><div class="table-wrap" id="mori-rolls"><div class="empty">Memuat…</div></div></div>
     </div>
 
     <!-- DASHBOARD -->
@@ -267,6 +280,7 @@
       <div class="pill-tab" id="master-tabs">
         <button class="active" data-m="upah" onclick="setMasterTab('upah')">Tarif Upah</button>
         <button data-m="pekerja" onclick="setMasterTab('pekerja')">Pekerja</button>
+        <button data-m="mori" onclick="setMasterTab('mori')">Ukuran Mori</button>
       </div>
       <div id="master-content"><div class="empty">Memuat…</div></div>
     </div>
@@ -385,7 +399,7 @@ async function showApp(){
 }
 
 // ===== NAV =====
-const pageTitles={ upah:'Upah', 'stok-manual':'Stok Proses', dashboard:'Dashboard', harian:'Input Harian', batch:'Batch', 'pekerja-rekap':'Hasil Pekerja', bahan:'Stok Obat', hpp:'HPP', master:'Master Data' };
+const pageTitles={ upah:'Upah', 'stok-manual':'Stok Proses', mori:'Stok Mori', dashboard:'Dashboard', harian:'Input Harian', batch:'Batch', 'pekerja-rekap':'Hasil Pekerja', bahan:'Stok Obat', hpp:'HPP', master:'Master Data' };
 window.navigateTo = (page) => {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   $('page-'+page)?.classList.add('active');
@@ -394,6 +408,7 @@ window.navigateTo = (page) => {
   closeMobileSidebar();
   if(page==='upah'){ if(!$('upah-date').value) $('upah-date').value=todayStr(); loadUpah(); }
   if(page==='stok-manual') loadStokManual();
+  if(page==='mori') loadMori();
   if(page==='dashboard') loadDashboard();
   if(page==='harian'){ if(!$('hr-date').value) $('hr-date').value=todayStr(); loadHarian(); }
   if(page==='batch') loadBatchList();
@@ -418,6 +433,7 @@ async function loadAllMaster(){
   M.bahan=bahan.docs.map(d=>({id:d.id,...d.data()}));
   M.pengambilan=ambil.docs.map(d=>({id:d.id,...d.data()}));
   try { const c=await getDoc(doc(db,'config_produksi','hpp')); M.config = c.exists()? c.data() : null; } catch(e){ M.config=null; }
+  try { const m=await getDoc(doc(db,'config_produksi','mori')); M.moriConf = m.exists()? m.data() : null; } catch(e){ M.moriConf=null; }
   updateBahanBadge();
 }
 
@@ -1078,6 +1094,7 @@ function renderMaster(){
   $('seed-card').style.display=M.pekerja.length?'none':'block';
   const el=$('master-content');
   if(masterTab==='upah') el.innerHTML=renderUpahRates();
+  else if(masterTab==='mori') el.innerHTML=renderMoriMaster();
   else if(masterTab==='pekerja') el.innerHTML=renderPekerja();
   else if(masterTab==='golongan') el.innerHTML=renderGolongan();
   else if(masterTab==='warna') el.innerHTML=renderWarna();
@@ -1300,12 +1317,13 @@ window.uoAddRow = () => { const d=document.createElement('div'); d.className='ro
   d.innerHTML=`<select class="form-control uo-jenis" style="flex:1;">${window._uoJOpts}</select><input type="number" step="0.5" min="0" class="form-control uo-qty" placeholder="kodi" style="width:90px;text-align:center;"><button class="btn btn-outline btn-sm" type="button" onclick="this.closest('.uo-row').remove()">✕</button>`;
   $('uo-rows').appendChild(d);
 };
-async function ensureStokItem(nama){
+async function ensureStokItem(nama, satuan){
+  satuan = satuan||'kodi';
   const snap=await getDocs(collection(db,'stok_proses_manual'));
   const found=snap.docs.find(d=>(d.data().nama||'').toLowerCase()===nama.toLowerCase());
   if(found) return {id:found.id, ...found.data()};
-  const ref=await addDoc(collection(db,'stok_proses_manual'), {nama, satuan:'kodi', jumlah:0});
-  return {id:ref.id, nama, satuan:'kodi', jumlah:0};
+  const ref=await addDoc(collection(db,'stok_proses_manual'), {nama, satuan, jumlah:0});
+  return {id:ref.id, nama, satuan, jumlah:0};
 }
 window.saveUpahPengobat = async () => {
   const jl=obatJenisList();
@@ -1394,6 +1412,168 @@ window.openStokManualRiwayat = async (id) => {
   showModal('Riwayat — '+(it?.nama||''), rows.length? `<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Perubahan</th><th>Sisa</th><th>Oleh</th><th>Ket.</th></tr></thead><tbody>${
     rows.map(r=>`<tr><td>${esc(r.tanggal||'-')}</td><td style="color:${r.delta<0?'var(--red-text)':'var(--green-text)'};font-weight:700;">${r.delta>0?'+':''}${(+r.delta.toFixed(1))}</td><td>${(+(r.jumlah_sesudah||0).toFixed(1))}</td><td>${esc(r.oleh_nama||'-')}</td><td class="muted" style="font-size:11.5px;">${esc(r.catatan||'')}</td></tr>`).join('')
   }</tbody></table></div>` : '<div class="empty">Belum ada riwayat</div>', `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button>`);
+};
+
+// ===== STOK MORI (yard) + potong + estimasi habis =====
+const CM_PER_YARD = 91.44;
+function moriUkuran(){ return (M.moriConf&&Array.isArray(M.moriConf.ukuran)&&M.moriConf.ukuran.length)? M.moriConf.ukuran : [{nama:'Tapih',cm:210},{nama:'Sarung',cm:195},{nama:'Slendang',cm:255}]; }
+const ukYard = u => (u.cm||0)/CM_PER_YARD;
+const yd = n => (Math.round((n||0)*100)/100).toLocaleString('id-ID')+' yd';
+const pakStr = pcs => { const p=Math.floor(pcs/10), r=pcs%10; return p>0? `${p} pak${r?` + ${(+r.toFixed(1))}`:''}` : `${(+pcs.toFixed(1))}`; };
+let moriRolls=[];
+async function loadMori(){
+  const [rollSnap, potSnap]=await Promise.all([ getDocs(collection(db,'mori_roll')), getDocs(collection(db,'mori_potong')) ]);
+  moriRolls=rollSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const ada=moriRolls.filter(r=>(r.yard_sisa||0)>0.001 && r.status!=='habis').sort((a,b)=>(a.no||0)-(b.no||0));
+  const totalYard=ada.reduce((s,r)=>s+(r.yard_sisa||0),0);
+  const pots=potSnap.docs.map(d=>d.data());
+  const win=(M.moriConf&&M.moriConf.window_hari)||14;
+  const since=new Date(); since.setDate(since.getDate()-win+1); const sinceStr=since.toLocaleDateString('sv-SE');
+  const cutYard=pots.filter(p=>(p.tanggal||'')>=sinceStr).reduce((s,p)=>s+(p.yard_terpakai||0),0);
+  const histRate=cutYard/win;
+  const manual=M.moriConf&&M.moriConf.target_yard_hari;
+  const rate=(manual&&manual>0)?manual:histRate;
+  const daysLeft=rate>0? totalYard/rate : null;
+  let habisTxt='—';
+  if(daysLeft!=null && isFinite(daysLeft)){ const d=new Date(); d.setDate(d.getDate()+Math.round(daysLeft)); habisTxt=`± ${Math.round(daysLeft)} hari (≈ ${d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})})`; }
+  $('mori-summary').innerHTML=`<div class="stat-grid">
+    <div class="stat-card"><div class="label">Total Mori</div><div class="value">${(+totalYard.toFixed(1)).toLocaleString('id-ID')}</div><div class="sub">yard · ${ada.length} gulung</div></div>
+    <div class="stat-card"><div class="label">Laju Potong</div><div class="value">${(+rate.toFixed(1)).toLocaleString('id-ID')}</div><div class="sub">yd/hari · ${manual&&manual>0?'target manual':'rata²'+win+'hr'}</div></div>
+    <div class="stat-card"><div class="label">Estimasi Habis</div><div class="value" style="font-size:16px;color:${daysLeft!=null&&daysLeft<7?'var(--red-text)':'var(--text-primary)'}">${habisTxt}</div></div>
+  </div>`;
+  const uks=moriUkuran();
+  $('mori-rolls').innerHTML = ada.length? `<table><thead><tr><th>Gulung</th><th>Sisa</th>${uks.map(u=>`<th title="${esc(u.nama)} ${u.cm}cm">~${esc(u.nama)}</th>`).join('')}<th></th></tr></thead><tbody>${
+    ada.map(r=>`<tr><td><b>${esc(r.label||('G'+(r.no||'')))}</b>${r.tanggal_masuk?`<div class="muted" style="font-size:10.5px;">${esc(r.tanggal_masuk)}</div>`:''}</td>
+      <td><b>${(+((r.yard_sisa||0)).toFixed(1))}</b> yd${(r.yard_sisa||0)<(r.yard_awal||0)-0.01?`<div class="muted" style="font-size:10.5px;">awal ${(+((r.yard_awal||0)).toFixed(1))}</div>`:''}</td>
+      ${uks.map(u=>`<td class="muted">${Math.floor((r.yard_sisa||0)/ukYard(u))}</td>`).join('')}
+      <td style="white-space:nowrap;"><button class="btn btn-primary btn-sm" onclick="openMoriPotongModal('${r.id}')">✂️ Potong</button> <button class="btn btn-danger btn-sm" onclick="delMoriRoll('${r.id}')">✕</button></td></tr>`).join('')
+  }</tbody></table><div class="muted" style="font-size:12px;margin-top:8px;">Kolom "~Ukuran" = perkiraan maks pcs bila gulung itu dipotong semua jadi ukuran tsb.</div>` : '<div class="empty"><div class="ico">🧵</div>Belum ada mori. Klik "+ Gulung Mori".</div>';
+}
+window.loadMori = loadMori;
+window.openMoriAddModal = () => {
+  showModal('Tambah Gulung Mori', `
+    <p class="muted" style="font-size:12.5px;margin-bottom:10px;">Masukkan yard tiap gulung — <b>satu gulung per baris</b> (boleh desimal). Contoh:<br>118<br>200<br>76.5</p>
+    <div class="form-group"><label class="form-label">Daftar yard (per baris)</label><textarea class="form-control" id="mr-list" rows="6" placeholder="118&#10;200&#10;76.5"></textarea></div>
+    <div class="form-group"><label class="form-label">Tanggal masuk</label><input type="date" class="form-control" id="mr-tgl" value="${todayStr()}"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="mr-save" onclick="saveMoriAdd()">Simpan</button>`);
+};
+window.saveMoriAdd = async () => {
+  const lines=($('mr-list').value||'').split(/\n/).map(s=>parseFloat(String(s).replace(',','.'))).filter(n=>!isNaN(n)&&n>0);
+  if(!lines.length){ toast('Isi minimal 1 yard','error'); return; }
+  const tgl=$('mr-tgl').value;
+  let maxNo=moriRolls.reduce((m,r)=>Math.max(m,r.no||0),0);
+  $('mr-save').disabled=true;
+  try {
+    for(const y of lines){ maxNo++; await addDoc(collection(db,'mori_roll'), { no:maxNo, label:'G'+maxNo, yard_awal:y, yard_sisa:y, tanggal_masuk:tgl, status:'ada', created_ms:Date.now(), created_at:serverTimestamp() }); }
+    toast(lines.length+' gulung ditambah ('+(+lines.reduce((s,y)=>s+y,0).toFixed(1))+' yd) ✅','success'); closeHostModal(); loadMori();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('mr-save').disabled=false; }
+};
+window.delMoriRoll = async (id) => { if(!confirm('Hapus gulung ini?')) return; await deleteDoc(doc(db,'mori_roll',id)); toast('Dihapus'); loadMori(); };
+window.openMoriPotongModal = (preRollId) => {
+  const ada=moriRolls.filter(r=>(r.yard_sisa||0)>0.001 && r.status!=='habis').sort((a,b)=>(a.no||0)-(b.no||0));
+  if(!ada.length){ toast('Belum ada mori','error'); return; }
+  const uks=moriUkuran();
+  const rollOpts=ada.map(r=>`<option value="${r.id}" ${r.id===preRollId?'selected':''}>${esc(r.label||('G'+r.no))} · ${(+((r.yard_sisa||0)).toFixed(1))} yd</option>`).join('');
+  const pekOpts='<option value="">— (opsional)</option>'+M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
+  const rowsHtml=uks.map((u,i)=>`<div class="row-flex" style="flex-wrap:nowrap;gap:8px;align-items:center;margin-bottom:6px;"><div style="flex:1;font-size:13px;">${esc(u.nama)} <span class="muted">(${u.cm}cm · ${(+ukYard(u).toFixed(3))}yd)</span></div><input type="number" step="1" min="0" class="form-control mp-pcs" data-nama="${esc(u.nama)}" data-yd="${ukYard(u)}" placeholder="pcs" oninput="mpHitung()" style="width:100px;text-align:center;"></div>`).join('');
+  showModal('Catat Pemotongan Mori', `
+    <div class="form-group"><label class="form-label">Pilih Gulung</label><select class="form-control" id="mp-roll" onchange="mpHitung()">${rollOpts}</select></div>
+    <div id="mp-pred" class="muted" style="font-size:12px;margin:-6px 0 10px;"></div>
+    <label class="form-label">Hasil potongan (pcs)</label>
+    ${rowsHtml}
+    <div class="card" style="box-shadow:none;border:1px solid var(--border);padding:10px;margin:8px 0;font-size:12.5px;">
+      <div style="display:flex;justify-content:space-between;"><span>Yard terpakai</span><b id="mp-pakai">0 yd</b></div>
+      <div style="display:flex;justify-content:space-between;margin-top:3px;"><span>Sisa gulung setelah potong</span><b id="mp-sisa">0 yd</b></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="mp-tgl" value="${todayStr()}"></div>
+      <div class="form-group"><label class="form-label">Oleh</label><select class="form-control" id="mp-pekerja">${pekOpts}</select></div>
+    </div>
+    <div class="form-group"><label style="font-size:13px;display:block;"><input type="checkbox" id="mp-habis" checked onchange="mpHitung()"> Habiskan gulung ini (sisa = waste)</label></div>
+    <div class="form-group"><label style="font-size:13px;display:block;"><input type="checkbox" id="mp-stok" checked> Masukkan hasil ke Stok Proses (siap cap)</label></div>
+    <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="mp-cat"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" id="mp-save" onclick="saveMoriPotong()">Simpan</button>`);
+  mpHitung();
+};
+window.mpHitung = () => {
+  const r=moriRolls.find(x=>x.id===$('mp-roll').value); const sisaAwal=r?(r.yard_sisa||0):0;
+  const uks=moriUkuran();
+  $('mp-pred').innerHTML='Prediksi maks dari '+(+sisaAwal.toFixed(1))+' yd: '+uks.map(u=>`<b>${Math.floor(sisaAwal/ukYard(u))}</b> ${esc(u.nama)}`).join(' · ');
+  let pakai=0; document.querySelectorAll('.mp-pcs').forEach(i=>{ pakai += (num(i.value))*parseFloat(i.dataset.yd); });
+  const habis=$('mp-habis').checked;
+  $('mp-pakai').textContent=(+pakai.toFixed(2))+' yd';
+  const sisa = habis? 0 : Math.max(0, sisaAwal-pakai);
+  $('mp-sisa').textContent=(+sisa.toFixed(2))+' yd'+(habis&&(sisaAwal-pakai)>0.05?` (waste ${(+(sisaAwal-pakai).toFixed(2))})`:'');
+  $('mp-pakai').style.color = pakai>sisaAwal+0.05?'var(--red-text)':'';
+};
+window.saveMoriPotong = async () => {
+  const r=moriRolls.find(x=>x.id===$('mp-roll').value); if(!r){ toast('Pilih gulung','error'); return; }
+  const hasil=[...document.querySelectorAll('.mp-pcs')].map(i=>({ukuran:i.dataset.nama, pcs:num(i.value), yd:parseFloat(i.dataset.yd)})).filter(h=>h.pcs>0);
+  if(!hasil.length){ toast('Isi hasil potongan','error'); return; }
+  const pakai=hasil.reduce((s,h)=>s+h.pcs*h.yd,0);
+  const sisaAwal=r.yard_sisa||0;
+  if(pakai>sisaAwal+0.05){ toast('Yard terpakai ('+(+pakai.toFixed(1))+') melebihi sisa gulung ('+(+sisaAwal.toFixed(1))+')','error'); return; }
+  const habis=$('mp-habis').checked, toStok=$('mp-stok').checked;
+  const pekId=$('mp-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
+  const tgl=$('mp-tgl').value, cat=$('mp-cat').value.trim();
+  const sisaAkhir = habis? 0 : Math.max(0, sisaAwal-pakai);
+  $('mp-save').disabled=true;
+  try {
+    const wb=writeBatch(db);
+    wb.update(doc(db,'mori_roll',r.id), { yard_sisa:sisaAkhir, status: (habis||sisaAkhir<=0.001)?'habis':'ada', waste: increment(habis? Math.max(0,sisaAwal-pakai):0) });
+    wb.set(doc(collection(db,'mori_potong')), { tanggal:tgl, roll_id:r.id, roll_label:r.label||('G'+r.no), hasil:hasil.map(h=>({ukuran:h.ukuran,pcs:h.pcs})), yard_terpakai:pakai, yard_sebelum:sisaAwal, yard_sesudah:sisaAkhir, habiskan:habis, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:cat, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
+    await wb.commit();
+    if(toStok){ for(const h of hasil){ const it=await ensureStokItem(h.ukuran+' siap cap','pcs');
+      const wb2=writeBatch(db);
+      wb2.update(doc(db,'stok_proses_manual',it.id), { jumlah: increment(h.pcs) });
+      wb2.set(doc(collection(db,'stok_proses_log')), { item_id:it.id, item_nama:it.nama, delta:h.pcs, jenis:'tambah', jumlah_sebelum:(it.jumlah||0), jumlah_sesudah:(it.jumlah||0)+h.pcs, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:'Hasil potong mori '+(r.label||''), created_ms:Date.now(), created_at:serverTimestamp() });
+      await wb2.commit();
+    } }
+    toast('Pemotongan tercatat ✅','success'); closeHostModal(); loadMori();
+  } catch(e){ toast('Gagal: '+e.message,'error'); $('mp-save').disabled=false; }
+};
+window.openMoriRiwayat = async () => {
+  const snap=await getDocs(collection(db,'mori_potong'));
+  const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0)).slice(0,200);
+  showModal('Riwayat Pemotongan', rows.length? `<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Gulung</th><th>Hasil</th><th>Yard</th><th></th></tr></thead><tbody>${
+    rows.map(r=>`<tr><td>${esc(r.tanggal||'-')}</td><td>${esc(r.roll_label||'-')}${r.habiskan?' <span class="badge badge-gray" style="font-size:9px;">habis</span>':''}</td><td style="font-size:12px;">${(r.hasil||[]).map(h=>esc(h.ukuran)+' '+pakStr(h.pcs)).join(' · ')||'-'}${r.oleh_nama?`<div class="muted" style="font-size:10px;">${esc(r.oleh_nama)}</div>`:''}</td><td>${(+((r.yard_terpakai||0)).toFixed(1))}</td><td><button class="btn btn-danger btn-sm" onclick="delMoriPotong('${r.id}')">✕</button></td></tr>`).join('')
+  }</tbody></table></div>` : '<div class="empty">Belum ada pemotongan</div>', `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button>`);
+};
+window.delMoriPotong = async (id) => { if(!confirm('Hapus catatan potong ini? (stok mori & stok proses TIDAK otomatis dikembalikan)')) return; await deleteDoc(doc(db,'mori_potong',id)); toast('Dihapus'); openMoriRiwayat(); };
+function renderMoriMaster(){
+  const uks=moriUkuran(); const mc=M.moriConf||{};
+  return `<div class="card"><div class="card-title">Ukuran Potong Kain <button class="btn btn-outline btn-sm" onclick="openMoriUkuranModal()">Ubah</button></div>
+    <div class="table-wrap"><table><thead><tr><th>Nama</th><th>cm</th><th>yard/pcs</th></tr></thead><tbody>${
+      uks.map(u=>`<tr><td>${esc(u.nama)}</td><td>${u.cm}</td><td>${(+ukYard(u).toFixed(3))}</td></tr>`).join('')
+    }</tbody></table></div><div class="muted" style="font-size:12px;margin-top:8px;">1 yard = 91,44 cm.</div></div>
+    <div class="card"><div class="card-title">Estimasi Habis <button class="btn btn-outline btn-sm" onclick="openMoriEstModal()">Ubah</button></div>
+    <div class="table-wrap"><table><tbody>
+      <tr><td>Target potong manual</td><td style="text-align:right">${mc.target_yard_hari? (mc.target_yard_hari+' yd/hari') : '<span class="muted">— (pakai rata²)</span>'}</td></tr>
+      <tr><td>Jendela rata-rata</td><td style="text-align:right">${(mc.window_hari||14)} hari</td></tr>
+    </tbody></table></div></div>`;
+}
+window.openMoriUkuranModal = () => {
+  const uks=moriUkuran();
+  const rows=uks.map(u=>`<div class="row-flex uk-row" style="flex-wrap:nowrap;gap:6px;margin-bottom:6px;"><input class="form-control uk-nama" value="${esc(u.nama)}" style="flex:1;"><input type="number" class="form-control uk-cm" value="${u.cm}" style="width:90px;" placeholder="cm"><button class="btn btn-outline btn-sm" type="button" onclick="this.closest('.uk-row').remove()">✕</button></div>`).join('');
+  showModal('Ubah Ukuran Potong', `<div id="uk-rows">${rows}</div><button class="btn btn-outline btn-sm" type="button" onclick="ukAddRow()" style="margin-top:4px;">+ Ukuran</button>`, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveMoriUkuran()">Simpan</button>`);
+};
+window.ukAddRow = () => { const d=document.createElement('div'); d.className='row-flex uk-row'; d.style.cssText='flex-wrap:nowrap;gap:6px;margin-bottom:6px;'; d.innerHTML=`<input class="form-control uk-nama" placeholder="nama" style="flex:1;"><input type="number" class="form-control uk-cm" placeholder="cm" style="width:90px;"><button class="btn btn-outline btn-sm" type="button" onclick="this.closest('.uk-row').remove()">✕</button>`; $('uk-rows').appendChild(d); };
+window.saveMoriUkuran = async () => {
+  const ukuran=[...document.querySelectorAll('#uk-rows .uk-row')].map(r=>({nama:r.querySelector('.uk-nama').value.trim(), cm:num(r.querySelector('.uk-cm').value)})).filter(u=>u.nama&&u.cm>0);
+  if(!ukuran.length){ toast('Isi minimal 1 ukuran','error'); return; }
+  await setDoc(doc(db,'config_produksi','mori'), {...(M.moriConf||{}), ukuran}, {merge:true}); M.moriConf={...(M.moriConf||{}), ukuran};
+  toast('Tersimpan','success'); closeHostModal(); renderMaster();
+};
+window.openMoriEstModal = () => { const mc=M.moriConf||{};
+  showModal('Ubah Estimasi Habis', `
+    <div class="form-group"><label class="form-label">Target potong manual (yd/hari)</label><input type="number" class="form-control" id="me-target" value="${mc.target_yard_hari||''}" placeholder="kosong = pakai rata-rata histori"></div>
+    <div class="form-group"><label class="form-label">Jendela rata-rata (hari)</label><input type="number" class="form-control" id="me-win" value="${mc.window_hari||14}"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveMoriEst()">Simpan</button>`);
+};
+window.saveMoriEst = async () => {
+  const patch={ target_yard_hari:num($('me-target').value)||null, window_hari:num($('me-win').value)||14 };
+  await setDoc(doc(db,'config_produksi','mori'), {...(M.moriConf||{}), ...patch}, {merge:true}); M.moriConf={...(M.moriConf||{}), ...patch};
+  toast('Tersimpan','success'); closeHostModal(); renderMaster();
 };
 
 // ===== SEED =====
