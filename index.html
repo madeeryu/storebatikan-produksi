@@ -1342,7 +1342,7 @@ window.saveUpahPengobat = async () => {
         const it=await ensureStokItem(d.stok,'kodi','proses');
         const wb=writeBatch(db);
         wb.update(doc(db,'stok_proses_manual',it.id), { jumlah: increment(d.qty) });
-        wb.set(doc(collection(db,'stok_proses_log')), { item_id:it.id, item_nama:it.nama, delta:d.qty, jenis:'tambah', jumlah_sebelum:(it.jumlah||0), jumlah_sesudah:(it.jumlah||0)+d.qty, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:'Rendam (dari upah pengobat)', created_ms:Date.now(), created_at:serverTimestamp() });
+        wb.set(doc(collection(db,'stok_proses_log')), { item_id:it.id, item_nama:it.nama, satuan:it.satuan||'kodi', delta:d.qty, jenis:'tambah', jumlah_sebelum:(it.jumlah||0), jumlah_sesudah:(it.jumlah||0)+d.qty, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:'Rendam (dari upah pengobat)', created_ms:Date.now(), created_at:serverTimestamp() });
         await wb.commit();
       }
     }
@@ -1359,6 +1359,43 @@ const katOf = it => STOK_KAT.some(k=>k.id===it.kategori)? it.kategori : 'lain';
 const katNext = { siap:'proses', proses:'selesai' };
 const toBaseKodi=(j,sat)=> sat==='pcs'? j/PCS_PER_KODI : j;
 const fromBaseKodi=(k,sat)=> sat==='pcs'? k*PCS_PER_KODI : k;
+const satAbbr = s => s==='kodi'? 'kd' : (s||'kd');
+function stokJenisMeta(j){
+  if(j==='tambah') return {label:'Tambah', emoji:'🟢', cls:'badge-green'};
+  if(j==='kurang') return {label:'Kurang', emoji:'🔻', cls:'badge-red'};
+  if(j==='pindah') return {label:'Pindah', emoji:'🔀', cls:'badge-blue'};
+  return {label:j||'Lainnya', emoji:'📝', cls:'badge-gray'};
+}
+function stokLogWhen(r){
+  let d=null;
+  if(r.created_ms) d=new Date(r.created_ms);
+  else if(r.created_at&&r.created_at.toDate) try{ d=r.created_at.toDate(); }catch(e){}
+  if(!d||isNaN(d)) return esc(r.tanggal||'-');
+  return d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})+', '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}).replace(':','.');
+}
+// Kartu riwayat ala Grosir (mobile-friendly, tanpa scroll horizontal)
+function renderStokLogCards(rows, opt){
+  opt=opt||{};
+  const satFallback=opt.satFallback||(()=> 'kd');
+  return rows.map(r=>{
+    const m=stokJenisMeta(r.jenis);
+    const sat=satAbbr(r.satuan||satFallback(r));
+    const bef=(+((r.jumlah_sebelum||0)).toFixed(2)), aft=(+((r.jumlah_sesudah||0)).toFixed(2)), delta=r.delta||0;
+    const dColor=delta<0?'var(--red-text)':(delta>0?'var(--green-text)':'var(--text-muted)');
+    return `<div style="padding:12px 2px;border-bottom:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+        <div style="min-width:0;flex:1;">
+          <span class="badge ${m.cls}">${m.emoji} ${m.label}</span>
+          ${opt.showItem?`<div style="font-weight:700;font-size:13px;margin-top:6px;">${esc(r.item_nama||'-')}</div>`:''}
+          <div class="muted" style="font-size:11.5px;margin-top:${opt.showItem?'2px':'6px'};">${stokLogWhen(r)}</div>
+          <div style="font-size:12.5px;margin-top:2px;">${bef} → ${aft} ${esc(sat)}</div>
+          ${r.oleh_nama?`<div class="muted" style="font-size:11px;margin-top:1px;">oleh: ${esc(r.oleh_nama)}</div>`:''}
+          ${r.catatan?`<div class="muted" style="font-size:11.5px;font-style:italic;margin-top:2px;word-break:break-word;">"${esc(r.catatan)}"</div>`:''}
+        </div>
+        <div style="font-weight:800;font-size:15px;white-space:nowrap;color:${dColor};">${delta>0?'+':''}${(+delta.toFixed(2))} ${esc(sat)}</div>
+      </div></div>`;
+  }).join('');
+}
 function stokItemsByKat(kat){ return stokManualItems.filter(it=>katOf(it)===kat); }
 async function loadStokManual(){
   const snap=await getDocs(collection(db,'stok_proses_manual'));
@@ -1448,8 +1485,8 @@ window.savePindah = async (fromId, toKat) => {
     const wb=writeBatch(db);
     wb.update(doc(db,'stok_proses_manual',fromId), { jumlah: increment(-jml) });
     wb.update(doc(db,'stok_proses_manual',target.id), { jumlah: increment(addQty) });
-    wb.set(doc(collection(db,'stok_proses_log')), { item_id:fromId, item_nama:from.nama, delta:-jml, jenis:'pindah', jumlah_sebelum:(from.jumlah||0), jumlah_sesudah:(from.jumlah||0)-jml, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:('→ '+target.nama)+(cat?(' · '+cat):''), created_ms:Date.now(), created_at:serverTimestamp() });
-    wb.set(doc(collection(db,'stok_proses_log')), { item_id:target.id, item_nama:target.nama, delta:addQty, jenis:'pindah', jumlah_sebelum:(target.jumlah||0), jumlah_sesudah:(target.jumlah||0)+addQty, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:('← '+from.nama)+(cat?(' · '+cat):''), created_ms:Date.now(), created_at:serverTimestamp() });
+    wb.set(doc(collection(db,'stok_proses_log')), { item_id:fromId, item_nama:from.nama, satuan:from.satuan||'kodi', delta:-jml, jenis:'pindah', jumlah_sebelum:(from.jumlah||0), jumlah_sesudah:(from.jumlah||0)-jml, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:('→ '+target.nama)+(cat?(' · '+cat):''), created_ms:Date.now(), created_at:serverTimestamp() });
+    wb.set(doc(collection(db,'stok_proses_log')), { item_id:target.id, item_nama:target.nama, satuan:target.satuan||'kodi', delta:addQty, jenis:'pindah', jumlah_sebelum:(target.jumlah||0), jumlah_sesudah:(target.jumlah||0)+addQty, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:('← '+from.nama)+(cat?(' · '+cat):''), created_ms:Date.now(), created_at:serverTimestamp() });
     await wb.commit();
     toast(`Pindah ${jml} ${from.satuan||'kodi'} → ${target.nama} ✅`,'success'); closeHostModal(); loadStokManual();
   } catch(e){ toast('Gagal: '+e.message,'error'); }
@@ -1457,10 +1494,9 @@ window.savePindah = async (fromId, toKat) => {
 window.openStokGlobalRiwayat = async () => {
   const snap=await getDocs(collection(db,'stok_proses_log'));
   const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0)).slice(0,200);
-  showModal('Riwayat Global Stok Proses', rows.length? `<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Item</th><th>Ubah</th><th>Sisa</th><th>Oleh</th><th>Ket.</th></tr></thead><tbody>${
-    rows.map(r=>`<tr><td style="white-space:nowrap;">${esc(r.tanggal||'-')}</td><td>${esc(r.item_nama||'-')}</td><td style="color:${(r.delta||0)<0?'var(--red-text)':'var(--green-text)'};font-weight:700;white-space:nowrap;">${(r.delta||0)>0?'+':''}${(+((r.delta||0)).toFixed(1))}</td><td>${(+((r.jumlah_sesudah||0)).toFixed(1))}</td><td>${esc(r.oleh_nama||'-')}</td><td class="muted" style="font-size:11.5px;white-space:normal;">${esc(r.catatan||'')}</td></tr>`).join('')
-  }</tbody></table></div>` : '<div class="empty">Belum ada riwayat</div>', `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button>`);
-  $('modal-box').style.maxWidth='680px';
+  const satMap={}; stokManualItems.forEach(it=>satMap[it.id]=it.satuan||'kodi');
+  const body = rows.length? `<div class="muted" style="font-size:12px;margin-bottom:4px;">${rows.length} entri terakhir</div>`+renderStokLogCards(rows, {showItem:true, satFallback:r=>satMap[r.item_id]||'kodi'}) : '<div class="empty">Belum ada riwayat</div>';
+  showModal('Riwayat Global Stok Proses', body, `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button>`);
 };
 window.adjustStokManual = (id, mode) => {
   const it=stokManualItems.find(x=>x.id===id); if(!it) return;
@@ -1482,16 +1518,16 @@ window.saveAdjustStok = async (id, mode) => {
   const pekId=$('aj-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId);
   const wb=writeBatch(db);
   wb.update(doc(db,'stok_proses_manual',id), { jumlah: increment(delta) });
-  wb.set(doc(collection(db,'stok_proses_log')), { item_id:id, item_nama:it.nama, delta, jenis:mode, jumlah_sebelum:(it.jumlah||0), jumlah_sesudah:(it.jumlah||0)+delta, tanggal:$('aj-tgl').value, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:$('aj-cat').value.trim(), created_ms:Date.now(), created_at:serverTimestamp() });
+  wb.set(doc(collection(db,'stok_proses_log')), { item_id:id, item_nama:it.nama, satuan:it.satuan||'kodi', delta, jenis:mode, jumlah_sebelum:(it.jumlah||0), jumlah_sesudah:(it.jumlah||0)+delta, tanggal:$('aj-tgl').value, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:$('aj-cat').value.trim(), created_ms:Date.now(), created_at:serverTimestamp() });
   await wb.commit(); toast('Stok diperbarui ✅','success'); closeHostModal(); loadStokManual();
 };
 window.openStokManualRiwayat = async (id) => {
   const it=stokManualItems.find(x=>x.id===id);
   const snap=await getDocs(query(collection(db,'stok_proses_log'), where('item_id','==',id)));
   const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0));
-  showModal('Riwayat — '+(it?.nama||''), rows.length? `<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Perubahan</th><th>Sisa</th><th>Oleh</th><th>Ket.</th></tr></thead><tbody>${
-    rows.map(r=>`<tr><td>${esc(r.tanggal||'-')}</td><td style="color:${r.delta<0?'var(--red-text)':'var(--green-text)'};font-weight:700;">${r.delta>0?'+':''}${(+r.delta.toFixed(1))}</td><td>${(+(r.jumlah_sesudah||0).toFixed(1))}</td><td>${esc(r.oleh_nama||'-')}</td><td class="muted" style="font-size:11.5px;">${esc(r.catatan||'')}</td></tr>`).join('')
-  }</tbody></table></div>` : '<div class="empty">Belum ada riwayat</div>', `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button>`);
+  const sat=it?.satuan||'kodi';
+  const body = rows.length? `<div class="muted" style="font-size:12px;margin-bottom:4px;">${rows.length} entri</div>`+renderStokLogCards(rows, {satFallback:()=>sat}) : '<div class="empty">Belum ada riwayat</div>';
+  showModal('Riwayat — '+(it?.nama||''), body, `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button>`);
 };
 
 // ===== STOK MORI (yard) + potong + estimasi habis =====
@@ -1696,7 +1732,7 @@ window.saveMoriPotong = async () => {
     if(toStok){ for(const h of hasil){ const it=await ensureStokItem(h.ukuran+' siap cap','pcs','siap');
       const wb2=writeBatch(db);
       wb2.update(doc(db,'stok_proses_manual',it.id), { jumlah: increment(h.pcs) });
-      wb2.set(doc(collection(db,'stok_proses_log')), { item_id:it.id, item_nama:it.nama, delta:h.pcs, jenis:'tambah', jumlah_sebelum:(it.jumlah||0), jumlah_sesudah:(it.jumlah||0)+h.pcs, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:'Hasil potong mori '+(r.label||''), created_ms:Date.now(), created_at:serverTimestamp() });
+      wb2.set(doc(collection(db,'stok_proses_log')), { item_id:it.id, item_nama:it.nama, satuan:it.satuan||'pcs', delta:h.pcs, jenis:'tambah', jumlah_sebelum:(it.jumlah||0), jumlah_sesudah:(it.jumlah||0)+h.pcs, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:'Hasil potong mori '+(r.label||''), created_ms:Date.now(), created_at:serverTimestamp() });
       await wb2.commit();
     } }
     toast(over? `Tercatat ✅ lebih ${(+lebih.toFixed(2))} yd · untung ${rp(untung)}` : 'Pemotongan tercatat ✅','success'); closeHostModal(); loadMori();
