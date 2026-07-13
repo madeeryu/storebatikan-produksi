@@ -1420,6 +1420,8 @@ const CM_PER_YARD = 91.44;
 function moriUkuran(){ return (M.moriConf&&Array.isArray(M.moriConf.ukuran)&&M.moriConf.ukuran.length)? M.moriConf.ukuran : [{nama:'Tapih',cm:218},{nama:'Sarung',cm:195},{nama:'Slendang',cm:255}]; }
 const ukYard = u => (u.cm||0)/CM_PER_YARD;
 const hargaMori = () => { const mc=M.moriConf||{}; return mc.harga_mori_per_yard!=null? mc.harga_mori_per_yard : 12200; };
+// Mori (yard) yg benar-benar dipakai dari gulung = pengurangan stok gulung; abaikan kelebihan hasil potong.
+const moriTerpakai = r => (r && r.yard_sebelum!=null)? Math.max(0,(r.yard_sebelum||0)-(r.yard_sesudah||0)) : ((r&&r.yard_terpakai)||0);
 const yd = n => (Math.round((n||0)*100)/100).toLocaleString('id-ID')+' yd';
 const pakStr = pcs => { const p=Math.floor(pcs/10), r=pcs%10; return p>0? `${p} pak${r?` + ${(+r.toFixed(1))}`:''}` : `${(+pcs.toFixed(1))}`; };
 // Isi 'freed' yard dgn kombinasi ukuran (sizes=yard) yg sisanya paling kecil
@@ -1471,7 +1473,7 @@ async function loadMori(){
   const pots=potSnap.docs.map(d=>d.data());
   const win=(M.moriConf&&M.moriConf.window_hari)||14;
   const since=new Date(); since.setDate(since.getDate()-win+1); const sinceStr=since.toLocaleDateString('sv-SE');
-  const cutYard=pots.filter(p=>(p.tanggal||'')>=sinceStr).reduce((s,p)=>s+(p.yard_terpakai||0),0);
+  const cutYard=pots.filter(p=>(p.tanggal||'')>=sinceStr).reduce((s,p)=>s+moriTerpakai(p),0);
   const histRate=cutYard/win;
   const manual=M.moriConf&&M.moriConf.target_yard_hari;
   const rate=(manual&&manual>0)?manual:histRate;
@@ -1631,11 +1633,11 @@ window.openMoriRiwayat = async (showAll) => {
   });
   const rows = moriRiwayatAll? all : all.slice(0,MORI_RIWAYAT_LIMIT);
   const sisa = all.length-rows.length;
-  const totalYd=all.reduce((s,r)=>s+(r.yard_terpakai||0),0);
+  const totalYd=all.reduce((s,r)=>s+moriTerpakai(r),0);
   const totalUntung=all.reduce((s,r)=>s+(r.untung||0),0);
   const body = all.length? `<div class="muted" style="font-size:12px;margin-bottom:8px;">${all.length} catatan · total ${(+totalYd.toFixed(1))} yd — dipakai untuk hitung laju & estimasi habis.${moriRiwayatAll?'':` Menampilkan ${rows.length} terakhir.`}${totalUntung>0?` · Total untung lebihan: <b style="color:var(--green-text)">${rp(totalUntung)}</b>`:''}</div>
     <div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Hasil</th><th>Yard</th><th>Untung</th><th></th></tr></thead><tbody>${
-      rows.map(r=>`<tr><td>${esc(r.tanggal||'-')}${r.manual?' <span class="badge badge-amber" style="font-size:9px;">manual</span>':''}</td><td style="font-size:12px;">${(r.hasil||[]).map(h=>esc(h.ukuran)+' '+pakStr(h.pcs)).join(' · ')||'<span class="muted">—</span>'}</td><td><b>${(+((r.yard_terpakai||0)).toFixed(1))}</b></td><td>${(r.untung||0)>0? `<b style="color:var(--green-text)">${rp(r.untung)}</b><div class="muted" style="font-size:10px;">+${(+((r.lebih_yard||0)).toFixed(2))} yd</div>` : '<span class="muted">—</span>'}</td><td><button class="btn btn-danger btn-sm" onclick="delMoriPotong('${r.id}')">✕</button></td></tr>`).join('')
+      rows.map(r=>`<tr><td>${esc(r.tanggal||'-')}${r.manual?' <span class="badge badge-amber" style="font-size:9px;">manual</span>':''}</td><td style="font-size:12px;">${(r.hasil||[]).map(h=>esc(h.ukuran)+' '+pakStr(h.pcs)).join(' · ')||'<span class="muted">—</span>'}</td><td><b>${(+(moriTerpakai(r)).toFixed(1))}</b></td><td>${(r.untung||0)>0? `<b style="color:var(--green-text)">${rp(r.untung)}</b><div class="muted" style="font-size:10px;">+${(+((r.lebih_yard||0)).toFixed(2))} yd</div>` : '<span class="muted">—</span>'}</td><td><button class="btn btn-danger btn-sm" onclick="delMoriPotong('${r.id}')">✕</button></td></tr>`).join('')
     }</tbody></table></div>
     ${sisa>0? `<div style="text-align:center;margin-top:10px;"><button class="btn btn-outline btn-sm" onclick="openMoriRiwayat(true)">Tampilkan lebih banyak (${sisa} lagi)</button></div>` : ''}
     ${(moriRiwayatAll && all.length>MORI_RIWAYAT_LIMIT)? `<div style="text-align:center;margin-top:10px;"><button class="btn btn-outline btn-sm" onclick="openMoriRiwayat(false)">Tampilkan lebih sedikit</button></div>` : ''}` : '<div class="empty">Belum ada pemotongan</div>';
