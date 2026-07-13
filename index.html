@@ -181,6 +181,7 @@
       <div class="page-header"><div class="page-title">📦 Stok Proses</div><div class="page-subtitle">Pantau stok lakar dll secara manual</div></div>
       <div class="row-flex" style="margin-bottom:14px;">
         <button class="btn btn-primary" onclick="openStokItemModal()">+ Item Stok</button>
+        <button class="btn btn-outline" onclick="openStokGlobalRiwayat()">📜 Riwayat Global</button>
       </div>
       <div id="stok-manual-list"><div class="empty">Memuat…</div></div>
     </div>
@@ -1318,13 +1319,13 @@ window.uoAddRow = () => { const d=document.createElement('div'); d.className='ro
   d.innerHTML=`<select class="form-control uo-jenis" style="flex:1;">${window._uoJOpts}</select><input type="number" step="0.5" min="0" class="form-control uo-qty" placeholder="kodi" style="width:90px;text-align:center;"><button class="btn btn-outline btn-sm" type="button" onclick="this.closest('.uo-row').remove()">✕</button>`;
   $('uo-rows').appendChild(d);
 };
-async function ensureStokItem(nama, satuan){
-  satuan = satuan||'kodi';
+async function ensureStokItem(nama, satuan, kategori){
+  satuan = satuan||'kodi'; kategori = kategori||'proses';
   const snap=await getDocs(collection(db,'stok_proses_manual'));
   const found=snap.docs.find(d=>(d.data().nama||'').toLowerCase()===nama.toLowerCase());
   if(found) return {id:found.id, ...found.data()};
-  const ref=await addDoc(collection(db,'stok_proses_manual'), {nama, satuan, jumlah:0});
-  return {id:ref.id, nama, satuan, jumlah:0};
+  const ref=await addDoc(collection(db,'stok_proses_manual'), {nama, satuan, kategori, jumlah:0});
+  return {id:ref.id, nama, satuan, kategori, jumlah:0};
 }
 window.saveUpahPengobat = async () => {
   const jl=obatJenisList();
@@ -1338,7 +1339,7 @@ window.saveUpahPengobat = async () => {
     await addDoc(collection(db,'upah_manual'), { tanggal:tgl, grup:'Pengobat', pekerja_id:pekId||null, pekerja_nama:pek?.nama||'(tanpa nama)', jenis_label:'Pengobat', detail, qty_pcs:totalKodi*PCS_PER_KODI, jumlah:total, catatan:cat, masuk_stok:toStok, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
     if(toStok){
       for(const d of detail){
-        const it=await ensureStokItem(d.stok);
+        const it=await ensureStokItem(d.stok,'kodi','proses');
         const wb=writeBatch(db);
         wb.update(doc(db,'stok_proses_manual',it.id), { jumlah: increment(d.qty) });
         wb.set(doc(collection(db,'stok_proses_log')), { item_id:it.id, item_nama:it.nama, delta:d.qty, jenis:'tambah', jumlah_sebelum:(it.jumlah||0), jumlah_sesudah:(it.jumlah||0)+d.qty, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:'Rendam (dari upah pengobat)', created_ms:Date.now(), created_at:serverTimestamp() });
@@ -1351,37 +1352,115 @@ window.saveUpahPengobat = async () => {
   } catch(e){ toast('Gagal: '+e.message,'error'); }
 };
 
-// ===== STOK PROSES MANUAL =====
+// ===== STOK PROSES MANUAL (klasifikasi: siap → proses → selesai) =====
 let stokManualItems=[];
+const STOK_KAT=[{id:'siap',label:'Siap Proses',emoji:'🟢'},{id:'proses',label:'Dalam Proses',emoji:'🔵'},{id:'selesai',label:'Selesai',emoji:'✅'},{id:'lain',label:'Belum diklasifikasi',emoji:'⚪'}];
+const katOf = it => STOK_KAT.some(k=>k.id===it.kategori)? it.kategori : 'lain';
+const katNext = { siap:'proses', proses:'selesai' };
+const toBaseKodi=(j,sat)=> sat==='pcs'? j/PCS_PER_KODI : j;
+const fromBaseKodi=(k,sat)=> sat==='pcs'? k*PCS_PER_KODI : k;
+function stokItemsByKat(kat){ return stokManualItems.filter(it=>katOf(it)===kat); }
 async function loadStokManual(){
   const snap=await getDocs(collection(db,'stok_proses_manual'));
   stokManualItems=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nama||'').localeCompare(b.nama||''));
   const el=$('stok-manual-list');
-  if(!stokManualItems.length){ el.innerHTML='<div class="empty"><div class="ico">📦</div>Belum ada item. Klik "+ Item Stok" untuk menambah (mis. Lakar bironan, PB, Tutuban).</div>'; return; }
-  el.innerHTML=`<div class="card"><div class="table-wrap"><table><thead><tr><th>Item</th><th>Stok</th><th></th></tr></thead><tbody>${
-    stokManualItems.map(it=>`<tr><td><b>${esc(it.nama)}</b></td><td><b style="font-size:15px;">${(+(it.jumlah||0).toFixed(1))}</b> ${esc(it.satuan||'kodi')}</td>
-      <td style="white-space:nowrap;"><button class="btn btn-outline btn-sm" onclick="adjustStokManual('${it.id}','tambah')">+ Tambah</button> <button class="btn btn-outline btn-sm" onclick="adjustStokManual('${it.id}','kurang')">− Kurang</button> <button class="btn btn-outline btn-sm" onclick="openStokManualRiwayat('${it.id}')">Riwayat</button> <button class="btn btn-danger btn-sm" onclick="delStokItem('${it.id}')">✕</button></td></tr>`).join('')
-  }</tbody></table></div></div>`;
+  if(!stokManualItems.length){ el.innerHTML='<div class="empty"><div class="ico">📦</div>Belum ada item. Klik "+ Item Stok".</div>'; return; }
+  el.innerHTML = STOK_KAT.map(k=>{
+    const items=stokItemsByKat(k.id); if(!items.length) return '';
+    return `<div class="card"><div class="card-title">${k.emoji} ${k.label} <span class="muted" style="font-weight:500;font-size:12px;">${items.length} item</span></div><div class="table-wrap"><table><tbody>${
+      items.map(it=>{ const kat=katOf(it); const nx=katNext[kat];
+        return `<tr><td><b>${esc(it.nama)}</b></td><td><b style="font-size:15px;">${(+(it.jumlah||0).toFixed(1))}</b> ${esc(it.satuan||'kodi')}</td>
+        <td style="white-space:nowrap;text-align:right;">${nx?`<button class="btn btn-primary btn-sm" onclick="openPindahModal('${it.id}','${nx}')">→ ${nx==='proses'?'Proses':'Selesai'}</button> `:''}<button class="btn btn-outline btn-sm" onclick="adjustStokManual('${it.id}','tambah')">+</button> <button class="btn btn-outline btn-sm" onclick="adjustStokManual('${it.id}','kurang')">−</button> <button class="btn btn-outline btn-sm" onclick="openStokManualRiwayat('${it.id}')">Riwayat</button> <button class="btn btn-outline btn-sm" onclick="openStokEditItem('${it.id}')">⚙</button> <button class="btn btn-danger btn-sm" onclick="delStokItem('${it.id}')">✕</button></td></tr>`;
+      }).join('')
+    }</tbody></table></div></div>`;
+  }).join('');
 }
 window.loadStokManual = loadStokManual;
+function katSelectHtml(id, val){ return `<select class="form-control" id="${id}">${STOK_KAT.filter(k=>k.id!=='lain').map(k=>`<option value="${k.id}" ${k.id===(val||'proses')?'selected':''}>${k.emoji} ${k.label}</option>`).join('')}</select>`; }
 window.openStokItemModal = () => {
   showModal('Tambah Item Stok', `
-    <div class="form-group"><label class="form-label">Nama Item</label><input class="form-control" id="si-nama" placeholder="Lakar bironan / PB / Tutuban / ..."></div>
+    <div class="form-group"><label class="form-label">Nama Item</label><input class="form-control" id="si-nama" placeholder="Lakar bironan / PB / Tapih siap cap …"></div>
+    <div class="form-group"><label class="form-label">Klasifikasi</label>${katSelectHtml('si-kat','proses')}</div>
     <div class="grid-2">
-      <div class="form-group"><label class="form-label">Satuan</label><input class="form-control" id="si-satuan" value="kodi"></div>
+      <div class="form-group"><label class="form-label">Satuan</label><select class="form-control" id="si-satuan"><option value="kodi">kodi</option><option value="pcs">pcs</option></select></div>
       <div class="form-group"><label class="form-label">Stok Awal</label><input type="number" step="0.5" class="form-control" id="si-stok" value="0"></div>
     </div>
   `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveStokItem()">Simpan</button>`);
 };
 window.saveStokItem = async () => {
   const nama=$('si-nama').value.trim(); if(!nama){ toast('Isi nama','error'); return; }
-  await addDoc(collection(db,'stok_proses_manual'), { nama, satuan:$('si-satuan').value.trim()||'kodi', jumlah:num($('si-stok').value) });
+  await addDoc(collection(db,'stok_proses_manual'), { nama, kategori:$('si-kat').value, satuan:$('si-satuan').value, jumlah:num($('si-stok').value) });
   toast('Item ditambah','success'); closeHostModal(); loadStokManual();
+};
+window.openStokEditItem = (id) => { const it=stokManualItems.find(x=>x.id===id); if(!it) return;
+  showModal('Edit Item — '+it.nama, `
+    <div class="form-group"><label class="form-label">Nama</label><input class="form-control" id="se-nama" value="${esc(it.nama)}"></div>
+    <div class="form-group"><label class="form-label">Klasifikasi</label>${katSelectHtml('se-kat', katOf(it)==='lain'?'proses':katOf(it))}</div>
+    <div class="form-group"><label class="form-label">Satuan</label><select class="form-control" id="se-satuan"><option value="kodi" ${(it.satuan||'kodi')==='kodi'?'selected':''}>kodi</option><option value="pcs" ${it.satuan==='pcs'?'selected':''}>pcs</option></select></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="saveStokEditItem('${id}')">Simpan</button>`);
+};
+window.saveStokEditItem = async (id) => { const nama=$('se-nama').value.trim(); if(!nama){ toast('Isi nama','error'); return; }
+  await updateDoc(doc(db,'stok_proses_manual',id), { nama, kategori:$('se-kat').value, satuan:$('se-satuan').value });
+  toast('Tersimpan','success'); closeHostModal(); loadStokManual();
 };
 window.delStokItem = async (id) => { if(!confirm('Hapus item ini beserta riwayatnya?')) return;
   const logs=await getDocs(query(collection(db,'stok_proses_log'), where('item_id','==',id)));
   const wb=writeBatch(db); logs.docs.forEach(d=>wb.delete(d.ref)); wb.delete(doc(db,'stok_proses_manual',id));
   await wb.commit(); toast('Dihapus'); loadStokManual();
+};
+// Pindah stok antar klasifikasi (siap→proses, proses→selesai)
+window.openPindahModal = (fromId, toKat) => {
+  const it=stokManualItems.find(x=>x.id===fromId); if(!it) return;
+  const katLabel=(STOK_KAT.find(k=>k.id===toKat)||{}).label||toKat;
+  const targets=stokItemsByKat(toKat);
+  const tOpts=`<option value="__new__">➕ Item baru…</option>`+targets.map(t=>`<option value="${t.id}">${esc(t.nama)} (${(+(t.jumlah||0).toFixed(1))} ${esc(t.satuan||'kodi')})</option>`).join('');
+  const pekOpts='<option value="">— (opsional)</option>'+M.pekerja.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
+  showModal('Pindah ke '+katLabel, `
+    <p class="muted" style="font-size:12.5px;margin-bottom:10px;">Dari <b>${esc(it.nama)}</b> (sisa ${(+(it.jumlah||0).toFixed(1))} ${esc(it.satuan||'kodi')}) → ${esc(katLabel)}.</p>
+    <div class="form-group"><label class="form-label">Jumlah (${esc(it.satuan||'kodi')})</label><input type="number" step="0.5" min="0" class="form-control" id="pd-jml" value="${(+(it.jumlah||0).toFixed(1))}"></div>
+    <div class="form-group"><label class="form-label">Item Tujuan</label><select class="form-control" id="pd-target" onchange="pdTargetChange()">${tOpts}</select></div>
+    <div id="pd-new-wrap" class="grid-2">
+      <div class="form-group"><label class="form-label">Nama item baru</label><input class="form-control" id="pd-new-nama" value="${esc(it.nama.replace(/ siap cap$/i,''))}"></div>
+      <div class="form-group"><label class="form-label">Satuan tujuan</label><select class="form-control" id="pd-new-sat"><option value="kodi">kodi</option><option value="pcs">pcs</option></select></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="pd-tgl" value="${todayStr()}"></div>
+      <div class="form-group"><label class="form-label">Oleh</label><select class="form-control" id="pd-pekerja">${pekOpts}</select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Catatan</label><input class="form-control" id="pd-cat"></div>
+    <div class="muted" id="pd-info" style="font-size:12px;"></div>
+  `, `<button class="btn btn-outline" onclick="closeHostModal()">Batal</button><button class="btn btn-primary" onclick="savePindah('${fromId}','${toKat}')">Pindahkan</button>`);
+  pdTargetChange();
+};
+window.pdTargetChange = () => { const isNew=$('pd-target').value==='__new__'; $('pd-new-wrap').style.display=isNew?'grid':'none'; };
+window.savePindah = async (fromId, toKat) => {
+  const from=stokManualItems.find(x=>x.id===fromId); if(!from) return;
+  const jml=num($('pd-jml').value); if(jml<=0){ toast('Isi jumlah','error'); return; }
+  if(jml>(from.jumlah||0)+1e-6){ toast('Jumlah melebihi stok ('+(+(from.jumlah||0).toFixed(1))+')','error'); return; }
+  const tgl=$('pd-tgl').value, pekId=$('pd-pekerja').value, pek=M.pekerja.find(p=>p.id===pekId), cat=$('pd-cat').value.trim();
+  const base=toBaseKodi(jml, from.satuan||'kodi');
+  try {
+    let target;
+    if($('pd-target').value==='__new__'){ const nm=$('pd-new-nama').value.trim(); if(!nm){ toast('Isi nama item baru','error'); return; } target=await ensureStokItem(nm, $('pd-new-sat').value, toKat); }
+    else { target=stokManualItems.find(x=>x.id===$('pd-target').value); }
+    if(!target){ toast('Pilih item tujuan','error'); return; }
+    const addQty=fromBaseKodi(base, target.satuan||'kodi');
+    const wb=writeBatch(db);
+    wb.update(doc(db,'stok_proses_manual',fromId), { jumlah: increment(-jml) });
+    wb.update(doc(db,'stok_proses_manual',target.id), { jumlah: increment(addQty) });
+    wb.set(doc(collection(db,'stok_proses_log')), { item_id:fromId, item_nama:from.nama, delta:-jml, jenis:'pindah', jumlah_sebelum:(from.jumlah||0), jumlah_sesudah:(from.jumlah||0)-jml, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:('→ '+target.nama)+(cat?(' · '+cat):''), created_ms:Date.now(), created_at:serverTimestamp() });
+    wb.set(doc(collection(db,'stok_proses_log')), { item_id:target.id, item_nama:target.nama, delta:addQty, jenis:'pindah', jumlah_sebelum:(target.jumlah||0), jumlah_sesudah:(target.jumlah||0)+addQty, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:('← '+from.nama)+(cat?(' · '+cat):''), created_ms:Date.now(), created_at:serverTimestamp() });
+    await wb.commit();
+    toast(`Pindah ${jml} ${from.satuan||'kodi'} → ${target.nama} ✅`,'success'); closeHostModal(); loadStokManual();
+  } catch(e){ toast('Gagal: '+e.message,'error'); }
+};
+window.openStokGlobalRiwayat = async () => {
+  const snap=await getDocs(collection(db,'stok_proses_log'));
+  const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created_ms||0)-(a.created_ms||0)).slice(0,200);
+  showModal('Riwayat Global Stok Proses', rows.length? `<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Item</th><th>Ubah</th><th>Sisa</th><th>Oleh</th><th>Ket.</th></tr></thead><tbody>${
+    rows.map(r=>`<tr><td style="white-space:nowrap;">${esc(r.tanggal||'-')}</td><td>${esc(r.item_nama||'-')}</td><td style="color:${(r.delta||0)<0?'var(--red-text)':'var(--green-text)'};font-weight:700;white-space:nowrap;">${(r.delta||0)>0?'+':''}${(+((r.delta||0)).toFixed(1))}</td><td>${(+((r.jumlah_sesudah||0)).toFixed(1))}</td><td>${esc(r.oleh_nama||'-')}</td><td class="muted" style="font-size:11.5px;white-space:normal;">${esc(r.catatan||'')}</td></tr>`).join('')
+  }</tbody></table></div>` : '<div class="empty">Belum ada riwayat</div>', `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button>`);
+  $('modal-box').style.maxWidth='680px';
 };
 window.adjustStokManual = (id, mode) => {
   const it=stokManualItems.find(x=>x.id===id); if(!it) return;
@@ -1614,7 +1693,7 @@ window.saveMoriPotong = async () => {
     wb.update(doc(db,'mori_roll',r.id), { yard_sisa:sisaAkhir, status: (habis||over||sisaAkhir<=0.001)?'habis':'ada', waste: increment(waste), lebih_yard: increment(lebih) });
     wb.set(doc(collection(db,'mori_potong')), { tanggal:tgl, roll_id:r.id, roll_label:r.label||('G'+r.no), hasil:hasil.map(h=>({ukuran:h.ukuran,pcs:h.pcs})), yard_terpakai:pakai, yard_sebelum:sisaAwal, yard_sesudah:sisaAkhir, habiskan:habis, lebih_yard:lebih, untung:untung, harga_per_yard:hargaMori(), waste_yard:waste, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:cat, created_by:currentUser.uid, created_ms:Date.now(), created_at:serverTimestamp() });
     await wb.commit();
-    if(toStok){ for(const h of hasil){ const it=await ensureStokItem(h.ukuran+' siap cap','pcs');
+    if(toStok){ for(const h of hasil){ const it=await ensureStokItem(h.ukuran+' siap cap','pcs','siap');
       const wb2=writeBatch(db);
       wb2.update(doc(db,'stok_proses_manual',it.id), { jumlah: increment(h.pcs) });
       wb2.set(doc(collection(db,'stok_proses_log')), { item_id:it.id, item_nama:it.nama, delta:h.pcs, jenis:'tambah', jumlah_sebelum:(it.jumlah||0), jumlah_sesudah:(it.jumlah||0)+h.pcs, tanggal:tgl, oleh_id:pekId||null, oleh_nama:pek?.nama||'', catatan:'Hasil potong mori '+(r.label||''), created_ms:Date.now(), created_at:serverTimestamp() });
