@@ -420,7 +420,7 @@ window.navigateTo = (page) => {
 };
 window.toggleMobileSidebar = () => { $('sidebar').classList.toggle('mobile-open'); $('sidebar-overlay').classList.toggle('open'); };
 window.closeMobileSidebar = () => { $('sidebar').classList.remove('mobile-open'); $('sidebar-overlay').classList.remove('open'); };
-function showModal(title, body, foot){ $('modal-title').textContent=title; $('modal-body').innerHTML=body; $('modal-foot').innerHTML=foot||''; $('modal-host').classList.add('open'); }
+function showModal(title, body, foot){ $('modal-box').style.maxWidth=''; $('modal-title').textContent=title; $('modal-body').innerHTML=body; $('modal-foot').innerHTML=foot||''; $('modal-host').classList.add('open'); }
 window.closeHostModal = () => $('modal-host').classList.remove('open');
 
 // ===== LOAD MASTER =====
@@ -1484,6 +1484,7 @@ async function loadMori(){
     <div class="stat-card"><div class="label">Total Mori</div><div class="value">${(+totalYard.toFixed(1)).toLocaleString('id-ID')}</div><div class="sub">yard · ${ada.length} gulung</div></div>
     <div class="stat-card"><div class="label">Laju Potong</div><div class="value">${(+rate.toFixed(1)).toLocaleString('id-ID')}</div><div class="sub">yd/hari · ${manual&&manual>0?'target manual':'rata²'+win+'hr'}</div></div>
     <div class="stat-card"><div class="label">Estimasi Habis</div><div class="value" style="font-size:16px;color:${daysLeft!=null&&daysLeft<7?'var(--red-text)':'var(--text-primary)'}">${habisTxt}</div></div>
+    <div class="stat-card"><div class="label">Nilai Mori</div><div class="value" style="font-size:18px;">${rp(totalYard*hargaMori())}</div><div class="sub">${(+totalYard.toFixed(1)).toLocaleString('id-ID')} yd × ${rp(hargaMori())}/yd</div></div>
   </div>`;
   const uks=moriUkuran();
   $('mori-rolls').innerHTML = ada.length? `<table><thead><tr><th>Gulung</th><th>Sisa</th>${uks.map(u=>`<th title="${esc(u.nama)} ${u.cm}cm">~${esc(u.nama)}</th>`).join('')}<th></th></tr></thead><tbody>${
@@ -1623,7 +1624,7 @@ window.saveMoriPotong = async () => {
   } catch(e){ toast('Gagal: '+e.message,'error'); $('mp-save').disabled=false; }
 };
 let moriRiwayatAll=false;
-const MORI_RIWAYAT_LIMIT=20;
+const MORI_RIWAYAT_LIMIT=5;
 window.openMoriRiwayat = async (showAll) => {
   moriRiwayatAll = !!showAll;
   const snap=await getDocs(collection(db,'mori_potong'));
@@ -1636,12 +1637,13 @@ window.openMoriRiwayat = async (showAll) => {
   const totalYd=all.reduce((s,r)=>s+moriTerpakai(r),0);
   const totalUntung=all.reduce((s,r)=>s+(r.untung||0),0);
   const body = all.length? `<div class="muted" style="font-size:12px;margin-bottom:8px;">${all.length} catatan · total ${(+totalYd.toFixed(1))} yd — dipakai untuk hitung laju & estimasi habis.${moriRiwayatAll?'':` Menampilkan ${rows.length} terakhir.`}${totalUntung>0?` · Total untung lebihan: <b style="color:var(--green-text)">${rp(totalUntung)}</b>`:''}</div>
-    <div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Hasil</th><th>Yard</th><th>Untung</th><th></th></tr></thead><tbody>${
-      rows.map(r=>`<tr><td>${esc(r.tanggal||'-')}${r.manual?' <span class="badge badge-amber" style="font-size:9px;">manual</span>':''}</td><td style="font-size:12px;">${(r.hasil||[]).map(h=>esc(h.ukuran)+' '+pakStr(h.pcs)).join(' · ')||'<span class="muted">—</span>'}</td><td><b>${(+(moriTerpakai(r)).toFixed(1))}</b></td><td>${(r.untung||0)>0? `<b style="color:var(--green-text)">${rp(r.untung)}</b><div class="muted" style="font-size:10px;">+${(+((r.lebih_yard||0)).toFixed(2))} yd</div>` : '<span class="muted">—</span>'}</td><td><button class="btn btn-danger btn-sm" onclick="delMoriPotong('${r.id}')">✕</button></td></tr>`).join('')
+    <div class="table-wrap"><table><thead><tr><th>Tanggal</th><th style="min-width:150px;">Hasil</th><th>Yard</th><th>Untung</th><th></th></tr></thead><tbody>${
+      rows.map(r=>`<tr><td style="white-space:nowrap;">${esc(r.tanggal||'-')}${r.manual?' <span class="badge badge-amber" style="font-size:9px;">manual</span>':''}</td><td style="font-size:12px;white-space:normal;word-break:break-word;">${(r.hasil||[]).map(h=>esc(h.ukuran)+' '+pakStr(h.pcs)).join(' · ')||'<span class="muted">—</span>'}</td><td><b>${(+(moriTerpakai(r)).toFixed(1))}</b></td><td>${(r.untung||0)>0? `<b style="color:var(--green-text)">${rp(r.untung)}</b><div class="muted" style="font-size:10px;">+${(+((r.lebih_yard||0)).toFixed(2))} yd</div>` : '<span class="muted">—</span>'}</td><td><button class="btn btn-danger btn-sm" onclick="delMoriPotong('${r.id}')">✕</button></td></tr>`).join('')
     }</tbody></table></div>
     ${sisa>0? `<div style="text-align:center;margin-top:10px;"><button class="btn btn-outline btn-sm" onclick="openMoriRiwayat(true)">Tampilkan lebih banyak (${sisa} lagi)</button></div>` : ''}
     ${(moriRiwayatAll && all.length>MORI_RIWAYAT_LIMIT)? `<div style="text-align:center;margin-top:10px;"><button class="btn btn-outline btn-sm" onclick="openMoriRiwayat(false)">Tampilkan lebih sedikit</button></div>` : ''}` : '<div class="empty">Belum ada pemotongan</div>';
   showModal('Riwayat Pemotongan', body, `<button class="btn btn-outline" onclick="closeHostModal()">Tutup</button><button class="btn btn-outline" onclick="openMoriHistoriBulk()">📥 Import Massal</button><button class="btn btn-primary" onclick="openMoriHistoriModal()">+ Histori Manual</button>`);
+  $('modal-box').style.maxWidth='640px';
 };
 
 // ===== IMPORT HISTORI MASSAL (dari buku catatan) =====
