@@ -1406,7 +1406,11 @@ async function loadStokManual(){
     const items=stokItemsByKat(k.id); if(!items.length) return '';
     return `<div class="card"><div class="card-title">${k.emoji} ${k.label} <span class="muted" style="font-weight:500;font-size:12px;">${items.length} item</span></div><div class="table-wrap"><table><tbody>${
       items.map(it=>{ const kat=katOf(it); const nx=katNext[kat];
-        return `<tr><td><b>${esc(it.nama)}</b></td><td><b style="font-size:15px;">${(+(it.jumlah||0).toFixed(1))}</b> ${esc(it.satuan||'kodi')}</td>
+        let nilaiHtml='';
+        if(kat==='siap'){ const u=ukuranForItemName(it.nama);
+          if(u){ const ydTot=pcsFrom(it.jumlah||0, it.satuan||'pcs')*ukYard(u);
+            nilaiHtml=`<div class="muted" style="font-size:10.5px;">${esc(u.nama)} ${u.cm}cm · ${(+ydTot.toFixed(1))} yd · <b style="color:var(--green-text)">${rp(ydTot*hargaMori())}</b></div>`; } }
+        return `<tr><td><b>${esc(it.nama)}</b>${nilaiHtml}</td><td><b style="font-size:15px;">${(+(it.jumlah||0).toFixed(1))}</b> ${esc(it.satuan||'kodi')}</td>
         <td style="white-space:nowrap;text-align:right;">${nx?`<button class="btn btn-primary btn-sm" onclick="openPindahModal('${it.id}','${nx}')">→ ${nx==='proses'?'Proses':'Selesai'}</button> `:''}<button class="btn btn-outline btn-sm" onclick="adjustStokManual('${it.id}','tambah')">+</button> <button class="btn btn-outline btn-sm" onclick="adjustStokManual('${it.id}','kurang')">−</button> <button class="btn btn-outline btn-sm" onclick="openStokManualRiwayat('${it.id}')">Riwayat</button> <button class="btn btn-outline btn-sm" onclick="openStokEditItem('${it.id}')">⚙</button> <button class="btn btn-danger btn-sm" onclick="delStokItem('${it.id}')">✕</button></td></tr>`;
       }).join('')
     }</tbody></table></div></div>`;
@@ -1537,6 +1541,10 @@ const ukYard = u => (u.cm||0)/CM_PER_YARD;
 const hargaMori = () => { const mc=M.moriConf||{}; return mc.harga_mori_per_yard!=null? mc.harga_mori_per_yard : 12200; };
 // Mori (yard) yg benar-benar dipakai dari gulung = pengurangan stok gulung; abaikan kelebihan hasil potong.
 const moriTerpakai = r => (r && r.yard_sebelum!=null)? Math.max(0,(r.yard_sebelum||0)-(r.yard_sesudah||0)) : ((r&&r.yard_terpakai)||0);
+// Cocokkan nama item stok (mis. "Tapih siap cap") ke ukuran potong -> tahu yard/pcs & tipe kain
+function ukuranForItemName(nama){ const n=String(nama||'').toLowerCase(); return moriUkuran().find(u=> n.startsWith(String(u.nama).toLowerCase())) || null; }
+const yardPerPcsOf = nama => { const u=ukuranForItemName(nama); return u? ukYard(u) : 0; };
+const pcsFrom = (jml, satuan) => satuan==='pcs'? jml : jml*PCS_PER_KODI;
 const yd = n => (Math.round((n||0)*100)/100).toLocaleString('id-ID')+' yd';
 const pakStr = pcs => { const p=Math.floor(pcs/10), r=pcs%10; return p>0? `${p} pak${r?` + ${(+r.toFixed(1))}`:''}` : `${(+pcs.toFixed(1))}`; };
 // Isi 'freed' yard dgn kombinasi ukuran (sizes=yard) yg sisanya paling kecil
@@ -1581,7 +1589,10 @@ function predictGreedy(yard, K, tolCm){
 }
 let moriRolls=[];
 async function loadMori(){
-  const [rollSnap, potSnap]=await Promise.all([ getDocs(collection(db,'mori_roll')), getDocs(collection(db,'mori_potong')) ]);
+  const [rollSnap, potSnap, itemSnap, logSnap]=await Promise.all([
+    getDocs(collection(db,'mori_roll')), getDocs(collection(db,'mori_potong')),
+    getDocs(collection(db,'stok_proses_manual')), getDocs(collection(db,'stok_proses_log'))
+  ]);
   moriRolls=rollSnap.docs.map(d=>({id:d.id,...d.data()}));
   const ada=moriRolls.filter(r=>(r.yard_sisa||0)>0.001 && r.status!=='habis').sort((a,b)=>(a.no||0)-(b.no||0));
   const totalYard=ada.reduce((s,r)=>s+(r.yard_sisa||0),0);
@@ -1589,18 +1600,47 @@ async function loadMori(){
   const win=(M.moriConf&&M.moriConf.window_hari)||14;
   const since=new Date(); since.setDate(since.getDate()-win+1); const sinceStr=since.toLocaleDateString('sv-SE');
   const cutYard=pots.filter(p=>(p.tanggal||'')>=sinceStr).reduce((s,p)=>s+moriTerpakai(p),0);
-  const histRate=cutYard/win;
+  const cutRate=cutYard/win;
+  // ===== Kain siap cap (sudah dipotong, belum dipakai) =====
+  const items=itemSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const siapItems=items.filter(it=>it.kategori==='siap');
+  const siapIds=new Set(siapItems.map(i=>i.id));
+  const perTipe={};
+  let siapPcs=0, siapYard=0;
+  siapItems.forEach(it=>{
+    const u=ukuranForItemName(it.nama); const ypp=u?ukYard(u):0;
+    const pcs=pcsFrom(it.jumlah||0, it.satuan||'pcs');
+    siapPcs+=pcs; siapYard+=pcs*ypp;
+    const key=u? u.nama : (it.nama||'Lainnya');
+    perTipe[key]=perTipe[key]||{pcs:0, yard:0, cm:u?u.cm:null};
+    perTipe[key].pcs+=pcs; perTipe[key].yard+=pcs*ypp;
+  });
+  const siapNilai=siapYard*hargaMori();
+  // ===== Laju PAKAI: kain siap cap yang masuk ke proses (diberikan ke pengecap) =====
+  const logs=logSnap.docs.map(d=>d.data());
+  const pakaiYard=logs.filter(l=> l.jenis==='pindah' && (l.delta||0)<0 && siapIds.has(l.item_id) && (l.tanggal||'')>=sinceStr)
+    .reduce((s,l)=> s + pcsFrom(Math.abs(l.delta||0), l.satuan||'pcs') * yardPerPcsOf(l.item_nama), 0);
+  const pakaiRate=pakaiYard/win;
   const manual=M.moriConf&&M.moriConf.target_yard_hari;
-  const rate=(manual&&manual>0)?manual:histRate;
-  const daysLeft=rate>0? totalYard/rate : null;
+  const rate=(manual&&manual>0)? manual : (pakaiRate>0? pakaiRate : cutRate);
+  const rateSrc=(manual&&manual>0)? 'target manual' : (pakaiRate>0? `dipakai · rata² ${win}hr` : `dipotong · rata² ${win}hr`);
+  // Stok yg belum terpakai = gulungan + kain siap cap
+  const totalTersedia=totalYard+siapYard;
+  const daysLeft=rate>0? totalTersedia/rate : null;
   let habisTxt='—';
   if(daysLeft!=null && isFinite(daysLeft)){ const d=new Date(); d.setDate(d.getDate()+Math.round(daysLeft)); habisTxt=`± ${Math.round(daysLeft)} hari (≈ ${d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})})`; }
+  const tipeRows=Object.keys(perTipe).sort();
   $('mori-summary').innerHTML=`<div class="stat-grid">
     <div class="stat-card"><div class="label">Total Mori</div><div class="value">${(+totalYard.toFixed(1)).toLocaleString('id-ID')}</div><div class="sub">yard · ${ada.length} gulung</div></div>
-    <div class="stat-card"><div class="label">Laju Potong</div><div class="value">${(+rate.toFixed(1)).toLocaleString('id-ID')}</div><div class="sub">yd/hari · ${manual&&manual>0?'target manual':'rata²'+win+'hr'}</div></div>
-    <div class="stat-card"><div class="label">Estimasi Habis</div><div class="value" style="font-size:16px;color:${daysLeft!=null&&daysLeft<7?'var(--red-text)':'var(--text-primary)'}">${habisTxt}</div></div>
-    <div class="stat-card"><div class="label">Nilai Mori</div><div class="value" style="font-size:18px;">${rp(totalYard*hargaMori())}</div><div class="sub">${(+totalYard.toFixed(1)).toLocaleString('id-ID')} yd × ${rp(hargaMori())}/yd</div></div>
-  </div>`;
+    <div class="stat-card"><div class="label">Kain Siap Cap</div><div class="value" style="font-size:18px;">${rp(siapNilai)}</div><div class="sub">${(+siapPcs.toFixed(0)).toLocaleString('id-ID')} pcs ≈ ${(+siapYard.toFixed(1)).toLocaleString('id-ID')} yd</div></div>
+    <div class="stat-card"><div class="label">Laju Pakai</div><div class="value">${(+rate.toFixed(1)).toLocaleString('id-ID')}</div><div class="sub">yd/hari · ${esc(rateSrc)}</div></div>
+    <div class="stat-card"><div class="label">Estimasi Habis</div><div class="value" style="font-size:16px;color:${daysLeft!=null&&daysLeft<7?'var(--red-text)':'var(--text-primary)'}">${habisTxt}</div><div class="sub">dari ${(+totalTersedia.toFixed(1)).toLocaleString('id-ID')} yd (gulung + siap cap)</div></div>
+    <div class="stat-card"><div class="label">Nilai Mori</div><div class="value" style="font-size:18px;">${rp(totalYard*hargaMori())}</div><div class="sub">gulungan · ${(+totalYard.toFixed(1)).toLocaleString('id-ID')} yd × ${rp(hargaMori())}/yd</div></div>
+    <div class="stat-card"><div class="label">Total Nilai</div><div class="value" style="font-size:18px;color:var(--green-text)">${rp((totalYard+siapYard)*hargaMori())}</div><div class="sub">gulungan + kain siap cap</div></div>
+  </div>
+  ${tipeRows.length? `<div class="card"><div class="card-title">🧵 Nilai Kain Siap Cap per Tipe</div><div class="table-wrap"><table><thead><tr><th>Tipe</th><th>Pcs</th><th>Yard</th><th>Nilai</th></tr></thead><tbody>${
+    tipeRows.map(k=>{ const t=perTipe[k]; return `<tr><td><b>${esc(k)}</b>${t.cm?`<span class="muted" style="font-size:11px;"> · ${t.cm} cm</span>`:''}</td><td>${(+t.pcs.toFixed(0)).toLocaleString('id-ID')}</td><td>${(+t.yard.toFixed(1)).toLocaleString('id-ID')}</td><td><b>${rp(t.yard*hargaMori())}</b></td></tr>`; }).join('')
+  }<tr style="font-weight:800;"><td>Total</td><td>${(+siapPcs.toFixed(0)).toLocaleString('id-ID')}</td><td>${(+siapYard.toFixed(1)).toLocaleString('id-ID')}</td><td>${rp(siapNilai)}</td></tr></tbody></table></div><div class="muted" style="font-size:12px;margin-top:8px;">Nilai = panjang mori tipe × harga mori (${rp(hargaMori())}/yd). Estimasi habis memakai <b>laju kain siap cap masuk ke proses</b> (diberikan ke pengecap), bukan sekadar yang dipotong.</div></div>` : ''}`;
   const uks=moriUkuran();
   $('mori-rolls').innerHTML = ada.length? `<table><thead><tr><th>Gulung</th><th>Sisa</th>${uks.map(u=>`<th title="${esc(u.nama)} ${u.cm}cm">~${esc(u.nama)}</th>`).join('')}<th></th></tr></thead><tbody>${
     ada.map(r=>`<tr><td><b>${esc(r.label||('G'+(r.no||'')))}</b>${r.tanggal_masuk?`<div class="muted" style="font-size:10.5px;">${esc(r.tanggal_masuk)}</div>`:''}</td>
